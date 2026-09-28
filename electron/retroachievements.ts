@@ -1,11 +1,14 @@
+import type {LoginStore} from './ra-login-cache';
 const base='https://retroachievements.org/API/';
 export class RetroAchievements {
   private credentials:{user:string;key:string}|null=null;
   private cache=new Map<string,{at:number;data:any}>();
   private generation=0;
-  constructor(private request:typeof fetch=fetch) {}
-  status(){return {user:this.credentials?.user||null}}
-  disconnect(){this.generation++;this.credentials=null;this.cache.clear();return this.status()}
+  private restored=false;
+  constructor(private request:typeof fetch=fetch,private store?:LoginStore) {}
+  private restore(){if(!this.restored){this.credentials=this.store?.load()||null;this.restored=true}}
+  status(){this.restore();return {user:this.credentials?.user||null}}
+  disconnect(){this.generation++;this.store?.clear();this.restored=true;this.credentials=null;this.cache.clear();return this.status()}
   private async get(endpoint:string,params:Record<string,string>,credentials=this.credentials):Promise<any> {
     if(!credentials)throw new Error('Conecte sua conta RetroAchievements primeiro.');
     const url=new URL(endpoint,base);
@@ -28,9 +31,12 @@ export class RetroAchievements {
     const profile=await this.get('API_GetUserProfile.php',{},credentials);
     if(typeof profile.User!=='string')throw new Error('Usuário não encontrado.');
     if(version!==this.generation)throw new Error('Conexão cancelada.');
-    this.credentials={...credentials,user:profile.User};this.cache.clear();return this.status();
+    const login={...credentials,user:profile.User};
+    this.store?.save(login);
+    this.credentials=login;this.restored=true;this.cache.clear();return this.status();
   }
   private async cached(id:string,endpoint:string,params:Record<string,string>){
+    this.restore();
     if(!this.credentials)throw new Error('Conecte sua conta RetroAchievements primeiro.');
     const old=this.cache.get(id);if(old&&Date.now()-old.at<60000)return old.data;
     const version=this.generation;

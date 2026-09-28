@@ -5,6 +5,7 @@ dist-electron/
 release/
 artifacts/
 .ui-check/
+.runtime-check/
 .storage-test-*/
 .opl-port-test-*/
 __pycache__/
@@ -22,3 +23,8 @@ oplserver/PS2/
 *.bin
 .codex/
 .agents/
+# Cache local de autenticação do RetroAchievements
+retroachievements-login.enc
+retroachievements-login.enc.tmp-*
+cache/
+.release-tools/

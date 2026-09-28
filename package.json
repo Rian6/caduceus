@@ -7,7 +7,7 @@
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .\"",
     "build": "vite build && tsc -p tsconfig.electron.json",
     "start": "electron .",
-    "dist": "npm run catalog:check && npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --win nsis --x64 --publish never",
     "migrate:mongo": "node scripts/migrate-mongo.mjs",
     "import:mongo": "node scripts/import-mongo.mjs",
     "catalog:check": "node scripts/check-catalog.mjs"
@@ -33,6 +33,8 @@
   "build": {
     "appId": "br.com.ps2library.app",
     "productName": "Caduceus",
+    "directories": {"output":"release"},
+    "artifactName": "Caduceus-Setup-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -41,18 +43,15 @@
     "extraResources": [
       {
         "from": "oplserver",
-        "to": "oplserver"
+        "to": "oplserver",
+        "filter": ["OPLServer.exe", "OPLServer.config", "SMBLibrary.dll", "SMBLibrary.Win32.dll", "Utilities.dll"]
       },
       {
         "from": "build/icon.png",
         "to": "icon.png"
       },
       {
-        "from": "database/catalog.sqlite3",
-        "to": "database/catalog.sqlite3"
-      },
-      {
-        "from": "assets-ps2-splash.png",
+        "from": "public/ps2-splash.png",
         "to": "ps2-splash.png"
       },
       {
@@ -73,7 +72,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/installer-icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -81,8 +80,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Caduceus",
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
+      "installerIcon": "build/installer-icon.ico",
+      "uninstallerIcon": "build/installer-icon.ico",
       "runAfterFinish": true
     }
   },

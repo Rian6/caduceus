@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, session, nativeImage, dialog, safeStorage } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import net from 'net';
@@ -12,7 +12,8 @@ import {importCatalog} from './catalog-import';
 import {saveCatalogBackup} from './catalog-backup';
 import {RetroAchievements} from './retroachievements';
 
-const achievements=new RetroAchievements();
+import {RALoginCache} from './ra-login-cache';
+const achievements=new RetroAchievements(fetch,new RALoginCache(()=>path.join(app.getPath('userData'),'cache','retroachievements-login.enc'),safeStorage));
 handle('ra:status',()=>achievements.status());
 handle('ra:connect',(_event,user:unknown,key:unknown)=>achievements.connect(user,key));
 handle('ra:disconnect',()=>achievements.disconnect());
@@ -275,7 +276,7 @@ async function createSplash(): Promise<BrowserWindow> {
     webPreferences: { contextIsolation: true, nodeIntegration: false }
   });
 
-  const imageUrl = `data:image/webp;base64,${fs.readFileSync(splashAssetPath()).toString('base64')}`;
+  const imageUrl = `data:image/png;base64,${fs.readFileSync(splashAssetPath()).toString('base64')}`;
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}

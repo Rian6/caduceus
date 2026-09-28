@@ -32,7 +32,7 @@ electron.app.whenReady().then(async () => {
   const context = {
     require: name => name === 'electron' ? mockedElectron : localRequire(name),
     exports: {}, module: { exports: {} }, __dirname: path.dirname(filename),
-    process, console, Buffer, setTimeout, clearTimeout, setInterval, clearInterval
+    process, console, Buffer, fetch, setTimeout, clearTimeout, setInterval, clearInterval
   };
   try {
     vm.runInNewContext(fs.readFileSync(filename, 'utf8') + '\nmodule.exports = { createSplash };', context, { filename });
@@ -40,7 +40,7 @@ electron.app.whenReady().then(async () => {
     const dimensions = await splash.webContents.executeJavaScript(`(async () => {
       const img = document.querySelector('img');
       await img.decode();
-      return { width: img.naturalWidth, height: img.naturalHeight, embedded: img.src.startsWith('data:image/webp;base64,') };
+      return { width: img.naturalWidth, height: img.naturalHeight, embedded: img.src.startsWith('data:image/png;base64,') };
     })()`);
     assert(dimensions.embedded);
     assert(dimensions.width > 0 && dimensions.height > 0);

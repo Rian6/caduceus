@@ -18,7 +18,7 @@ export function Achievements(){
       <h3>Conectar para consultar</h3><p>Informe seu usuário e a Web API Key disponível em retroachievements.org/settings. Use a chave da API, não a senha da conta.</p>
       <label>Usuário<input value={username} onChange={e=>setUsername(e.target.value)} autoComplete="username" maxLength={100} required disabled={busy}/></label>
       <label>Web API Key<input type="password" value={key} onChange={e=>setKey(e.target.value)} autoComplete="off" maxLength={256} required disabled={busy}/></label>
-      <small>A chave fica apenas nesta sessão e é descartada ao fechar o aplicativo.</small>
+      <small>O login é salvo com proteção do Windows neste computador. Use Desconectar para remover os dados salvos.</small>
       <button className="primary" disabled={busy||!username.trim()||!key.trim()}>{busy?<Loader2 className="spin"/>:<Lock/>}Conectar</button>
     </form>:<>
       <div className="raToolbar"><div><b>{user}</b><small>Consulta de todas as plataformas · atualizações em cache por 1 minuto</small></div><button disabled={busy} onClick={()=>void run(()=>load(page))}><RefreshCw/>Atualizar</button><button disabled={busy} onClick={()=>void run(async()=>{await window.games.raDisconnect();setUser(null);setGames([]);setDetail(null);setKey('')})}>Desconectar</button></div>

@@ -8,6 +8,14 @@ Gerenciador de jogos **PlayStation 2 para Windows**, com biblioteca local, downl
 
 **Electron · React · TypeScript · Vite · SQLite**
 
+## Download para Windows
+
+**[Baixar Caduceus v1.0.0 — instalador Windows x64 (.exe)](https://github.com/Rian6/caduceus/releases/download/v1.0.0/Caduceus-Setup-1.0.0-x64.exe)**
+
+[Notas da versão e arquivos de verificação](https://github.com/Rian6/caduceus/releases/tag/v1.0.0)
+
+O instalador inicia com um catálogo vazio, sem contas conectadas, caches pessoais ou ISOs. Após instalar, adicione seus jogos ou importe sua base em Configurações. Esta versão não possui assinatura digital de um certificado de editor.
+
 ![Biblioteca do Caduceus no tema escuro](docs/images/biblioteca.png)
 
 [Recursos](#recursos) · [Primeiros passos](#primeiros-passos) · [Desenvolvimento](#desenvolvimento) · [Conquistas](#conquistas) · [Backup](#catálogo-importação-e-backup)
@@ -99,7 +107,7 @@ O comando inicia o Vite, compila o processo Electron e abre o aplicativo. O cat�
 | `npm run build` | Compilar a interface e o processo Electron. |
 | `npm start` | Abrir o aplicativo usando os arquivos já compilados. |
 | `npm run catalog:check` | Validar a presença e consultar os totais do catálogo local. |
-| `npm run dist` | Validar o catálogo, compilar e gerar o instalador Windows com electron-builder. |
+| `npm run dist` | Compilar e gerar o instalador Windows x64 em `release/`, sem publicar automaticamente. |
 | `npm run import:mongo` | Importar registros de MongoDB para uma base local existente. |
 | `npm run migrate:mongo` | Recriar a base local a partir de MongoDB para uma migração inicial. |
 
@@ -109,7 +117,7 @@ O comando inicia o Vite, compila o processo Electron e abre o aplicativo. O cat�
 npm run dist
 ```
 
-Prepare o catálogo local antes de gerar o instalador: `database/catalog.sqlite3` é incluído no pacote. Confira quais registros e links deseja distribuir. O computador que recebe o aplicativo instalado não precisa de Node.js, MongoDB ou Python.
+O instalador não inclui `database/catalog.sqlite3`, caches de autenticação ou o conteúdo de `oplserver/PS2`. A base vazia é criada na primeira execução. A lista explícita de recursos do servidor evita distribuir ISOs ou saves locais. O computador que recebe o aplicativo instalado não precisa de Node.js, MongoDB ou Python.
 
 ## Catálogo, importação e backup
 
@@ -162,7 +170,7 @@ A aba **Conquistas** usa a API do RetroAchievements para consultar o progresso d
 - Filtros de conquistas bloqueadas, desbloqueadas e hardcore.
 - Cache de consultas por um minuto.
 
-Informe seu usuário e sua **Web API Key** na própria aba. A chave fica somente na memória durante a sessão e é descartada ao desconectar ou fechar o aplicativo. Não use a senha da conta nesse campo.
+Informe seu usuário e sua **Web API Key** na própria aba. O login é salvo com criptografia do Windows na pasta de dados do aplicativo (`cache/retroachievements-login.enc`) e restaurado nas próximas aberturas. **Desconectar** remove o arquivo salvo. O cache e seus arquivos temporários estão no `.gitignore`. Não use a senha da conta nesse campo.
 
 A integração é **somente de leitura**: não desbloqueia conquistas nem envia partidas do OPL ao RetroAchievements.
 

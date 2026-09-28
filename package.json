@@ -1,0 +1,91 @@
+{
+  "name": "roms-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .\"",
+    "build": "vite build && tsc -p tsconfig.electron.json",
+    "start": "electron .",
+    "dist": "npm run catalog:check && npm run build && electron-builder",
+    "migrate:mongo": "node scripts/migrate-mongo.mjs",
+    "import:mongo": "node scripts/import-mongo.mjs",
+    "catalog:check": "node scripts/check-catalog.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "concurrently": "latest",
+    "typescript": "latest",
+    "wait-on": "latest",
+    "electron-builder": "latest",
+    "vite": "latest",
+    "@vitejs/plugin-react": "latest",
+    "electron": "latest",
+    "mongodb": "^6.20.0"
+  },
+  "build": {
+    "appId": "br.com.ps2library.app",
+    "productName": "Caduceus",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "oplserver",
+        "to": "oplserver"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "database/catalog.sqlite3",
+        "to": "database/catalog.sqlite3"
+      },
+      {
+        "from": "assets-ps2-splash.png",
+        "to": "ps2-splash.png"
+      },
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "electron/native",
+        "to": "opl-activity",
+        "filter": [
+          "*.ps1",
+          "*.cs"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Caduceus",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "runAfterFinish": true
+    }
+  },
+  "description": "Gerenciador de jogos PlayStation 2 com integração ao OPL e catálogo SQLite local",
+  "author": "Rian Mendes"
+}

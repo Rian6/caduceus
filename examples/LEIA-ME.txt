@@ -1,0 +1,1 @@
+Bases de exemplo para importar nas configuracoes. Cada arquivo adiciona dois jogos ficticios diferentes, sem ISOs, capas ou links de download. Importar novamente deve ignorar os jogos ja cadastrados.

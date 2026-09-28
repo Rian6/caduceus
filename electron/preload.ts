@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 const on=(channel:string,cb:(d:any)=>void)=>{const h=(_e:any,d:any)=>cb(d);ipcRenderer.on(channel,h);return()=>ipcRenderer.removeListener(channel,h)};
 contextBridge.exposeInMainWorld('games',{
+ raStatus:()=>ipcRenderer.invoke('ra:status'),
+ raConnect:(user:string,key:string)=>ipcRenderer.invoke('ra:connect',user,key),
+ raDisconnect:()=>ipcRenderer.invoke('ra:disconnect'),
+ raGames:(page:number)=>ipcRenderer.invoke('ra:games',page),
+ raGame:(id:number)=>ipcRenderer.invoke('ra:game',id),
  importCatalog:()=>ipcRenderer.invoke('catalog:import'),
  backupCatalog:()=>ipcRenderer.invoke('catalog:backup'),
  networkSettings:()=>ipcRenderer.invoke('network:get'), setOplPort:(port:number)=>ipcRenderer.invoke('network:set-port',port),

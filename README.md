@@ -1,363 +1,193 @@
+<p align="center">
+  <img src="assets/caduceus-icon.png" alt="Símbolo do Caduceus" width="90">
+</p>
+
 # Caduceus
 
-**Caduceus** é um gerenciador desktop de biblioteca para **PlayStation
-2**, construído com **Electron + React + TypeScript**, voltado a
-organizar o catálogo, instalar jogos na estrutura usada pelo OPL e
-simplificar a conexão do console com o computador.
+Gerenciador de jogos **PlayStation 2 para Windows**, com biblioteca local, downloads, importação de ISOs e servidor integrado para jogar pela rede usando o **Open PS2 Loader (OPL)**.
 
-> O Caduceus não instala o Open PS2 Loader no console e não inclui
-> arquivos de jogos. O usuário é responsável pelos arquivos adicionados
-> à biblioteca.
+**Electron · React · TypeScript · Vite · SQLite**
 
-## Principais recursos
+![Biblioteca do Caduceus no tema escuro](docs/images/biblioteca.png)
 
--   Biblioteca local de jogos de PS2.
--   Catálogo em SQLite.
--   Capas e metadados.
--   Cadastro e edição de jogos.
--   Importação de ISOs existentes no computador.
--   Downloads quando o registro possui URL configurada.
--   Estado global dos downloads, independente da página atual.
--   Área de jogos instalados.
--   Estrutura `PS2/DVD`, `PS2/CD`, `PS2/ART`, `PS2/CFG` e `PS2/VMC`.
--   Servidor OPL iniciado junto com o aplicativo.
--   Configuração de conexão com o PS2.
--   Backup e importação do catálogo.
--   Tutorial integrado de primeiros passos.
--   Build e instalador para Windows.
+[Recursos](#recursos) · [Primeiros passos](#primeiros-passos) · [Desenvolvimento](#desenvolvimento) · [Conquistas](#conquistas) · [Backup](#catálogo-importação-e-backup)
 
-## Stack
+## Recursos
 
--   Electron
--   React
--   TypeScript
--   Vite
--   SQLite
--   Lucide React
--   UI inspirada em shadcn/ui
--   OPLServer integrado
+| Área | O que você pode fazer |
+| --- | --- |
+| Biblioteca | Buscar jogos, visualizar capas e editar títulos, metadados e opções de download. |
+| Instalados | Consultar os arquivos disponíveis no servidor e reparar capas do OPL. |
+| Downloads | Acompanhar transferências enquanto navega pelas outras telas. |
+| Importação de ISO | Copiar um arquivo do computador para a estrutura do servidor. |
+| Servidor | Consultar IP e porta, alterar a porta e escolher onde armazenar os jogos. |
+| Armazenamento | Migrar a pasta inteira do OPL Server ou recriá-la em outro local. |
+| Catálogo | Importar bases SQLite/JSON e salvar um backup SQLite. |
+| Conquistas | Consultar jogos e progresso de uma conta RetroAchievements. |
+| Aparência | Alternar entre temas claro e escuro, com a preferência salva. |
+| Tutorial | Seguir o guia da primeira abertura ou revê-lo nas configurações. |
 
-## Catálogo e SQLite
+Jogos sem capa ou URL continuam na biblioteca. O download fica disponível quando há um link cadastrado.
 
-O Caduceus usa **SQLite em runtime**, tanto em desenvolvimento quanto no
-aplicativo instalado.
+## Interface
 
-O MongoDB é apenas uma origem legada para a migração inicial:
+As capturas abaixo mostram a interface com **dados de demonstração**. A conta e as conquistas exibidas no exemplo do RetroAchievements são simuladas.
 
-``` text
-MongoDB local
-     |
-     | npm run migrate:mongo
-     v
-database/catalog.sqlite3
-     |
-     +--> npm run dev
-     |
-     +--> npm run dist
-```
+### Jogo em execução
 
-Configuração histórica padrão da migração:
+O destaque da biblioteca acompanha o jogo detectado no servidor, com sua capa e identificação.
 
-``` text
-URI:        mongodb://localhost:27017
-Database:   romsfun
-Collection: jogos
-```
+![Destaque do jogo em execução](docs/images/jogando.png)
 
-Para migrar:
+### Configurações e tema claro
 
-``` bash
-npm run migrate:mongo
-```
+IP, porta e compartilhamento ficam reunidos para facilitar a configuração do console.
 
-Para validar:
+![Configurações de rede e armazenamento no tema claro](docs/images/configuracoes-claro.png)
 
-``` bash
-npm run catalog:check
-```
+<details>
+<summary><strong>Ver o tutorial de primeira abertura</strong></summary>
 
-Depois da migração, o Caduceus não depende do MongoDB. Quando
-disponível, o documento original migrado também é preservado em
-`raw_json`.
+![Tutorial ilustrado de conexão e configuração do PS2](docs/images/tutorial.png)
 
-## Regras da Biblioteca
+</details>
 
-A Biblioteca deve exibir os registros do SQLite independentemente de
-possuírem capa, URL de download, arquivo instalado ou Game ID.
+<details>
+<summary><strong>Ver a aba Conquistas em uma janela compacta</strong></summary>
 
-Um jogo sem URL continua visível, mas seu botão de download fica
-desabilitado.
+<img src="docs/images/conquistas.png" alt="Consulta de conquistas do RetroAchievements com filtro de bloqueadas" width="650">
 
-Os jogos podem ser editados para alterar título, capa, URLs, Game ID e
-demais metadados suportados.
-
-## Arquivos de jogos
-
-A estrutura utilizada pelo servidor OPL inclui:
-
-``` text
-PS2/
-├── DVD/
-├── CD/
-├── ART/
-├── CFG/
-└── VMC/
-```
-
-Downloads iniciados pelo catálogo usam o destino controlado pelo
-Caduceus. O usuário não escolhe arbitrariamente o diretório final.
-
-Na **Importação de ISO**, o usuário escolhe apenas o arquivo de origem.
-O Caduceus copia a ISO para a estrutura correta do OPL.
-
-A área **Instalados** representa os jogos encontrados fisicamente nessa
-estrutura.
-
-## Downloads
-
-Os downloads devem ser controlados pelo processo Electron, e não pelo
-componente React da página atual.
-
-Assim, um download continua normalmente quando o usuário muda de página,
-troca de aba ou abre outra seção do Caduceus. A interface apenas observa
-o estado global.
-
-## Servidor OPL
-
-O servidor é iniciado junto com o Caduceus. Não é necessário um botão
-manual de inicialização.
-
-A tela de conexão pode apresentar:
-
-``` text
-Servidor OPL
-Servidor SMB compatível com OPL ativo
-IP: <IP acessível pelo PS2>
-Porta: <porta configurada>
-Share: PS2
-```
-
-O estado deve ser validado em tempo real. O IP exibido deve corresponder
-à interface de rede alcançável pelo console, e não simplesmente
-`127.0.0.1`.
+</details>
 
 ## Primeiros passos
 
-Na primeira execução, o Caduceus apresenta um tutorial guiado. A
-conclusão é salva no `localStorage` com:
+Para jogar pela rede, você precisa do Caduceus no computador, do **OPL instalado e funcionando no PS2** e de uma conexão Ethernet entre o console e a rede do computador.
 
-``` text
-ps2-library-tutorial-v1
-```
+1. Abra o Caduceus e siga o tutorial inicial.
+2. Conecte o PS2 e o computador à mesma rede, preferencialmente por cabo ao roteador.
+3. Em **Configurações → Conexão com o PS2**, confira se o servidor está online e anote IP, porta e compartilhamento.
+4. No OPL, preencha os dados do servidor SMB com os valores exibidos no aplicativo.
+5. Importe uma ISO pela edição do jogo ou baixe um arquivo por uma opção cadastrada. Aguarde a conclusão e confira a aba **Instalados**.
+6. Abra a lista de jogos por rede no OPL. Mantenha o computador ligado e o Caduceus aberto durante a partida.
 
-O guia possui seis etapas.
+O compartilhamento do servidor integrado é `PS2`. Use a porta exibida pelo Caduceus, inclusive se você a tiver alterado. O guia completo pode ser reaberto em **Configurações → Primeiros passos**.
 
-### 1. Preparação
-
-Explica que o Caduceus roda no computador e que o console precisa do
-**Open PS2 Loader (OPL)** para abrir jogos pela rede.
-
-O tutorial cita métodos de homebrew compatíveis, como Free McBoot nos
-modelos suportados, e aponta para o projeto oficial do OPL:
-
-https://github.com/ps2homebrew/Open-PS2-Loader/releases
-
-O Caduceus não instala o OPL no PS2.
-
-### 2. Conexão
-
-Orienta a conectar PS2 e computador à mesma rede, preferencialmente
-através do roteador.
-
-Também informa que:
-
--   PS2 Fat precisa de adaptador de rede com Ethernet;
--   conexão direta PC ↔ PS2 sem DHCP exige IPs estáticos diferentes na
-    mesma sub-rede;
--   o computador deve permanecer ligado e sem suspensão enquanto o
-    console estiver usando o servidor.
-
-### 3. No computador
-
-O usuário acessa:
-
-``` text
-Configurações → Conexão com o PS2
-```
-
-O tutorial mostra dinamicamente:
-
--   IP do computador;
--   porta;
--   compartilhamento.
-
-Esses valores vêm do `OplStatus` atual.
-
-### 4. No PlayStation 2
-
-No OPL, o usuário abre a configuração de rede e preenche o servidor SMB
-com os dados mostrados pelo Caduceus.
-
-Para o servidor integrado atualmente, o guia informa:
-
-``` text
-Usuário: Guest
-Senha:   vazia
-Share:   PS2
-```
-
-A porta utilizada é a porta exibida pelo Caduceus, não necessariamente a
-porta SMB padrão encontrada em outros tutoriais.
-
-### 5. Sua biblioteca
-
-Existem duas formas principais de instalar um jogo:
-
-1.  **Baixar jogo**, quando o registro possui link disponível.
-2.  Editar o jogo e usar **Importar ISO**, quando a ISO já existe no
-    computador.
-
-Importar SQLite/JSON ou restaurar um catálogo não transfere as ISOs.
-
-### 6. Pronto para jogar
-
-O guia orienta a habilitar o dispositivo ETH/Network no OPL, salvar as
-configurações e abrir a lista de jogos de rede.
-
-Se a lista estiver vazia, verificar:
-
--   cabo e rede;
--   servidor online;
--   IP;
--   porta;
--   compartilhamento;
--   conclusão da instalação da ISO.
-
-O guia pode ser reaberto em:
-
-``` text
-Configurações → Primeiros passos
-```
+O Caduceus não instala o OPL no console nem inclui ISOs. Consulte o [projeto oficial do OPL](https://github.com/ps2homebrew/Open-PS2-Loader) para os arquivos e orientações do console.
 
 ## Desenvolvimento
 
-Instale as dependências:
+### Requisitos
 
-``` bash
-npm install
-```
+- Windows, para executar o servidor e os auxiliares nativos incluídos.
+- Node.js compatível com as dependências do projeto e com `node:sqlite` para os scripts de catálogo.
+- npm e Git.
 
-Execute:
+Na pasta do projeto:
 
-``` bash
+```powershell
+npm ci
 npm run dev
 ```
 
-Valide o TypeScript do processo Electron:
+O comando inicia o Vite, compila o processo Electron e abre o aplicativo. O catálogo local é criado na primeira execução quando necessário; **MongoDB não é obrigatório**.
 
-``` bash
-npx tsc -p tsconfig.electron.json --noEmit
-```
+### Comandos
 
-## Build e instalador
+| Comando | Finalidade |
+| --- | --- |
+| `npm run dev` | Executar em desenvolvimento. |
+| `npm run build` | Compilar a interface e o processo Electron. |
+| `npm start` | Abrir o aplicativo usando os arquivos já compilados. |
+| `npm run catalog:check` | Validar a presença e consultar os totais do catálogo local. |
+| `npm run dist` | Validar o catálogo, compilar e gerar o instalador Windows com electron-builder. |
+| `npm run import:mongo` | Importar registros de MongoDB para uma base local existente. |
+| `npm run migrate:mongo` | Recriar a base local a partir de MongoDB para uma migração inicial. |
 
-Antes de gerar uma versão:
+### Instalador
 
-``` bash
-npm run catalog:check
-```
-
-Depois:
-
-``` bash
+```powershell
 npm run dist
 ```
 
-O `electron-builder` gera o instalador do Windows. Para distribuição
-manual, o objetivo é que seja suficiente enviar:
+Prepare o catálogo local antes de gerar o instalador: `database/catalog.sqlite3` é incluído no pacote. Confira quais registros e links deseja distribuir. O computador que recebe o aplicativo instalado não precisa de Node.js, MongoDB ou Python.
 
-``` text
-Caduceus Setup <versão>.exe
-```
+## Catálogo, importação e backup
 
-O computador do usuário final não deve precisar de MongoDB ou Python
-para executar o Caduceus.
+O aplicativo usa **SQLite**. O catálogo guarda títulos, capas, links e outros metadados; as ISOs ficam separadas na pasta do servidor.
 
-## Backup
+| Operação em Configurações → Base de jogos | Comportamento |
+| --- | --- |
+| Escolher base e importar | Aceita SQLite com tabela `games`, uma lista JSON ou um objeto JSON com a propriedade `games`. |
+| Jogos já cadastrados | São ignorados pela importação, preservando os registros locais. |
+| Backup automático | É criado antes de gravar uma importação válida. |
+| Salvar backup da base | Permite escolher o nome e a pasta de uma cópia SQLite da base atual. |
 
-O backup do catálogo contém **metadados**, não os arquivos dos jogos:
+Para experimentar, use a base de exemplo:
 
-``` text
-Backup SQLite/JSON != backup das ISOs
-```
+- [jogos-teste.json](examples/jogos-teste.json)
 
-## Regras importantes para futuras alterações
+O arquivo contém jogos fictícios, sem ISOs ou links de download. Você também pode gerar uma base SQLite pela opção de backup do aplicativo. Importar um catálogo não instala os jogos. O backup SQLite não inclui ISOs, VMCs ou configurações do aplicativo. Reimportar o backup adiciona registros ausentes; não substitui os registros já existentes.
 
-1.  O aplicativo usa SQLite em runtime.
-2.  MongoDB é somente uma ferramenta legada de migração.
-3.  A Biblioteca não pode esconder jogos por falta de capa ou download.
-4.  Jogos sem URL continuam visíveis com download desabilitado.
-5.  Downloads continuam ativos ao navegar entre páginas.
-6.  Downloads do catálogo usam o diretório controlado pelo Caduceus.
-7.  Importar ISO permite escolher o arquivo de origem, mas a instalação
-    vai para a estrutura OPL.
-8.  O servidor OPL inicia junto com o aplicativo.
-9.  O status do servidor é acompanhado em tempo real.
-10. Mudanças de UI não devem interferir em `games:list` nem no
-    carregamento do SQLite.
-11. O instalador deve ser autocontido para o usuário final.
-12. Catálogo e ISOs são independentes; importar catálogo não copia
-    jogos.
-13. Jogos encontrados fisicamente devem ser associados a um registro
-    persistente antes de operações que exigem um ID do SQLite.
+### Onde os dados ficam
 
-## Estrutura conceitual
+- **Desenvolvimento:** `database/catalog.sqlite3`.
+- **Aplicativo instalado:** `catalog.sqlite3` na pasta de dados do usuário gerenciada pelo Electron.
+- **Arquivos do servidor:** por padrão, em `Documentos/PS2 Library/oplserver`, com destino alterável nas configurações. O nome histórico da pasta foi mantido.
 
-``` text
-Caduceus
-│
-├── Electron
-│   ├── SQLite
-│   ├── downloads
-│   ├── filesystem
-│   ├── importação de ISO
-│   └── servidor OPL
-│
-├── React
-│   ├── Biblioteca
-│   ├── Instalados
-│   ├── Downloads
-│   ├── Cadastro / edição
-│   ├── Configurações
-│   └── Primeiros passos
-│
-├── database/
-│   └── catalog.sqlite3
-│
+```text
+oplserver/
+├── OPLServer.exe
 └── PS2/
-    ├── DVD/
+    ├── DVD/   # Imagens de jogos
     ├── CD/
-    ├── ART/
-    ├── CFG/
-    └── VMC/
+    ├── ART/   # Capas e arte
+    ├── CFG/   # Configurações dos jogos
+    └── VMC/   # Cartões de memória virtuais
 ```
 
-## Status atual
+Ao mudar o armazenamento, a opção de migração transfere a pasta inteira. A opção de recriação **exclui o conteúdo antigo após confirmação**, incluindo saves armazenados em VMCs.
 
-O projeto possui catálogo SQLite, migração do MongoDB legado, biblioteca
-paginada, capas, cadastro/edição, importação de ISO, jogos instalados,
-downloads persistentes durante a navegação, integração com OPLServer,
-configuração de conexão, tutorial de primeiros passos e instalador para
-Windows.
+### MongoDB opcional
 
-## Conteúdo e direitos
+Os scripts de importação usam, por padrão, `mongodb://localhost:27017`, banco `romsfun` e coleção `jogos`. Você pode configurar `MONGO_URI`, `MONGO_DATABASE` e `MONGO_COLLECTION` no ambiente.
 
-O Caduceus é um gerenciador de biblioteca. Arquivos de jogos, capas,
-metadados e links externos podem estar sujeitos a direitos autorais,
-licenças e termos próprios. O projeto não pressupõe que um arquivo
-disponível na internet esteja automaticamente autorizado para
-redistribuição.
+Prefira `npm run import:mongo` para incorporar dados a uma base existente. `npm run migrate:mongo` recria o catálogo local. O aplicativo não consulta MongoDB durante o uso normal.
 
-------------------------------------------------------------------------
+## Conquistas
 
-**Caduceus --- PS2 Library Manager**
+A aba **Conquistas** usa a API do RetroAchievements para consultar o progresso da conta em todas as plataformas:
+
+- Lista paginada de jogos e progresso normal/hardcore.
+- Detalhes, descrições e pontos de cada conquista.
+- Filtros de conquistas bloqueadas, desbloqueadas e hardcore.
+- Cache de consultas por um minuto.
+
+Informe seu usuário e sua **Web API Key** na própria aba. A chave fica somente na memória durante a sessão e é descartada ao desconectar ou fechar o aplicativo. Não use a senha da conta nesse campo.
+
+A integração é **somente de leitura**: não desbloqueia conquistas nem envia partidas do OPL ao RetroAchievements.
+
+## Organização do projeto
+
+```text
+electron/       Processo principal, SQLite, servidor, IPC e integrações
+electron/native/ Auxiliares Windows para detectar atividade do OPL
+src/            Interface React, componentes e estilos
+oplserver/      Componentes do servidor integrado
+scripts/        Migração, validação e testes
+examples/       Catálogos de demonstração
+assets/         Recursos visuais do aplicativo
+docs/images/    Capturas usadas neste README
+```
+
+### Verificações
+
+```powershell
+npx tsc -p tsconfig.json --noEmit
+npm run build
+```
+
+Há verificações específicas em `scripts/test-*.cjs` para catálogo, backups, armazenamento, rede, RetroAchievements e interface. Os testes de interface usam Electron; os testes de integração com APIs utilizam dados simulados. Não precisam da sua chave RetroAchievements.
+
+## Conteúdo e componentes de terceiros
+
+O Caduceus gerencia os arquivos e metadados adicionados pelo usuário. Jogos, capas e componentes integrados permanecem sujeitos aos direitos e licenças dos respectivos autores. OPL e RetroAchievements são projetos independentes.

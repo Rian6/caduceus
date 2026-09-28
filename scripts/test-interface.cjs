@@ -23,6 +23,11 @@ function fixtureAPI(games) {
   const networkStatus = () => ({online:true, ip:'192.168.1.10', port:networkPort, folder:'C:\\Caduceus\\PS2', shareName:'PS2', addresses:['192.168.1.10','192.168.2.10']});
   let storage = {directory:'C:\\Caduceus\\oplserver', isoDirectory:'C:\\Caduceus\\oplserver\\PS2\\DVD',exists:true,bytes:4200000000,isoCount:2,busy:false};
   window.games = {
+    raStatus:async()=>({user:null}),
+    raConnect:async()=>({user:'Tester'}),
+    raDisconnect:async()=>({user:null}),
+    raGames:async()=>({total:1,games:[{id:1,title:'Achievement Test',console:'PlayStation 2',image:null,total:2,earned:1,hardcore:1}]}),
+    raGame:async()=>({title:'Achievement Test',achievements:[{id:1,title:'First trophy',description:'Complete the first stage.',points:5,image:null,earned:true,hardcore:true,date:'2026-01-01'},{id:2,title:'Second trophy',description:'Complete the second stage.',points:10,image:null,earned:false,hardcore:false,date:''}]}),
     networkSettings:async()=>networkStatus(),
     setOplPort:async port=>{networkPort=port;window.__calls.push('port:'+port);window.__emit('opl',networkStatus());return networkStatus()},
     storageSettings:async()=>storage,
@@ -176,6 +181,16 @@ app.whenReady().then(async () => {
     assert(await js('document.documentElement.scrollWidth <= innerWidth'), `horizontal overflow at ${width}`);
   }
   await screenshot('interface-compact');
+  await click('.sidebar nav button:last-child');await delay(150);
+  await setInput('.raConnect input[autocomplete="username"]','Tester');
+  await setInput('.raConnect input[type="password"]','test-key');
+  await click('.raConnect button');await delay(150);
+  assert(await js('!!document.querySelector(".raGame")'));
+  await click('.raGame');await delay(150);
+  assert.equal(await js('document.querySelectorAll(".raBadge").length'),2);
+  await js('document.querySelector(".raToolbar select").value="locked";document.querySelector(".raToolbar select").dispatchEvent(new Event("change",{bubbles:true}))');await delay(100);
+  assert.equal(await js('document.querySelectorAll(".raBadge").length'),1);
+  await screenshot('interface-achievements');
   assert.deepEqual(await js('window.__errors'), []);
   console.log('PASS: library, cover fallback, playing/idle transitions, details, edit/save, download, create, storage selection/move/fresh confirmation, search, compact layouts; no renderer errors.');
   window.destroy(); server.close(); app.exit(0);

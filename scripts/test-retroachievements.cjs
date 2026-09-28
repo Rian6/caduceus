@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const {RetroAchievements}=require('../dist-electron/retroachievements.js');
+(async()=>{
+ const calls=[];let status=200;
+ const client=new RetroAchievements(async(url,options)=>{
+  assert.equal(options.method,'GET');assert.equal(url.origin,'https://retroachievements.org');assert.equal(url.searchParams.get('y'),'test-key');calls.push(url.pathname);
+  const data=url.pathname.includes('GetUserProfile')?{User:'Tester'}:url.pathname.includes('Completion')?{Total:1,Results:[{GameID:1,Title:'Example',ConsoleName:'PlayStation 2',MaxPossible:2,NumAwarded:1,NumAwardedHardcore:1,ImageIcon:'/Images/123.png'}]}:{Title:'Example',Achievements:{1:{ID:1,Title:'First',Points:5,BadgeName:'123',DateEarnedHardcore:'2026-01-01'},2:{ID:2,Title:'Second',Points:10}}};
+  return new Response(JSON.stringify(data),{status});
+ });
+ await assert.rejects(()=>client.games(0),/Conecte/);
+ assert.deepEqual(await client.connect('Tester','test-key'),{user:'Tester'});
+ const games=await client.games(0);assert.equal(games.games[0].hardcore,1);
+ await client.games(0);assert.equal(calls.length,2,'cache avoids duplicate requests');
+ const detail=await client.game(1);assert.equal(detail.achievements[0].earned,true);assert.equal(detail.achievements[1].earned,false);
+ await assert.rejects(()=>client.game(-1),/inválido/);
+ status=429;await assert.rejects(()=>client.games(1),/Limite/);
+ status=403;await assert.rejects(()=>client.games(1),/Web API Key/);
+ client.disconnect();assert.deepEqual(client.status(),{user:null});await assert.rejects(()=>client.game(1),/Conecte/);
+ const bad=new RetroAchievements(async()=>{throw new Error('secret-key-in-url')});
+ await assert.rejects(()=>bad.connect('Tester','secret-key'),e=>!e.message.includes('secret-key'));
+ console.log('PASS: read-only endpoints, cache, achievements, validation, errors, disconnect and credential redaction.');
+})().catch(e=>{console.error(e);process.exitCode=1});

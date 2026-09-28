@@ -10,6 +10,14 @@ import { OplStorage, StorageMode, validatePort } from './storage';
 import {assertPortAvailable, localAddresses} from './network';
 import {importCatalog} from './catalog-import';
 import {saveCatalogBackup} from './catalog-backup';
+import {RetroAchievements} from './retroachievements';
+
+const achievements=new RetroAchievements();
+handle('ra:status',()=>achievements.status());
+handle('ra:connect',(_event,user:unknown,key:unknown)=>achievements.connect(user,key));
+handle('ra:disconnect',()=>achievements.disconnect());
+handle('ra:games',(_event,page:unknown)=>achievements.games(page));
+handle('ra:game',(_event,id:unknown)=>achievements.game(id));
 
 function oplPort(){return storage().port}
 let db:DatabaseSync|null=null;

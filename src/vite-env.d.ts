@@ -6,6 +6,11 @@ type OplStatus={online:boolean;ip:string;port:number;folder:string;shareName:str
 type NowPlaying={id?:number;title:string;gameId?:string|null;icon?:string|null;fileName:string;filePath?:string;active?:boolean};
 interface Window { games: GamesAPI }
 interface GamesAPI {
+ raStatus:()=>Promise<{user:string|null}>;
+ raConnect:(user:string,key:string)=>Promise<{user:string|null}>;
+ raDisconnect:()=>Promise<{user:string|null}>;
+ raGames:(page:number)=>Promise<{total:number;games:RAGame[]}>;
+ raGame:(id:number)=>Promise<{title:string;achievements:RAAchievement[]}>;
  backupCatalog:()=>Promise<{cancelled:boolean;backup?:string}>;
  importCatalog:()=>Promise<{cancelled:boolean;added?:number;skipped?:number;backup?:string}>;
  networkSettings:()=>Promise<NetworkSettings>;
@@ -17,6 +22,8 @@ interface GamesAPI {
  nowPlaying:()=>Promise<NowPlaying|null>;
  onNowPlaying:(cb:(game:NowPlaying|null)=>void)=>()=>void;
 }
+type RAGame={id:number;title:string;console:string;image:string|null;total:number;earned:number;hardcore:number};
+type RAAchievement={id:number;title:string;description:string;points:number;image:string|null;earned:boolean;hardcore:boolean;date:string};
 type StorageSettings={directory:string;isoDirectory:string;exists:boolean;bytes:number;isoCount:number;busy:boolean};
 type NetworkSettings=OplStatus & {addresses:string[]};
 type StorageProgress={phase:string;received:number;total:number;file?:string};

@@ -3,12 +3,14 @@ import { Search, Gamepad2, Download, ChevronLeft, ChevronRight, RefreshCw, Check
 import { CreateGame, EditGame } from './GameForms';
 import { Cover, Modal, bytes, errorText, isDownloading } from './ui';
 import { Settings } from './Settings';
+import { Achievements } from './Achievements';
+import { Trophy } from 'lucide-react';
 import { GettingStarted, needsTutorial } from './GettingStarted';
 import caduceusIcon from '../assets/caduceus-icon.png';
 
 const PAGE_SIZE = 24;
-type View = 'library' | 'installed' | 'downloads' | 'create' | 'settings';
-const viewNames: Record<View, string> = { library: 'Biblioteca', installed: 'Instalados', downloads: 'Downloads', create: 'Adicionar jogo', settings: 'Configurações' };
+type View = 'library' | 'installed' | 'downloads' | 'create' | 'settings' | 'achievements';
+const viewNames: Record<View, string> = { achievements: 'Conquistas', library: 'Biblioteca', installed: 'Instalados', downloads: 'Downloads', create: 'Adicionar jogo', settings: 'Configurações' };
 const number = (value: number) => value.toLocaleString('pt-BR');
 
 export default function App() {
@@ -100,6 +102,7 @@ export default function App() {
         <button className={view === 'library' ? 'active' : ''} aria-current={view === 'library' ? 'page' : undefined} onClick={() => changeView('library')}><LayoutGrid />Biblioteca<span>{catalogTotal ? number(catalogTotal) : ''}</span></button>
         <button className={view === 'installed' ? 'active' : ''} aria-current={view === 'installed' ? 'page' : undefined} onClick={() => changeView('installed')}><HardDrive />Instalados<span>{installed.length || ''}</span></button>
         <button className={view === 'downloads' ? 'active' : ''} aria-current={view === 'downloads' ? 'page' : undefined} onClick={() => changeView('downloads')}><Download />Downloads{activeDownloads.length > 0 && <span className="navCount">{activeDownloads.length}</span>}</button>
+        <button className={view === 'achievements' ? 'active' : ''} aria-current={view === 'achievements' ? 'page' : undefined} onClick={() => changeView('achievements')}><Trophy />Conquistas</button>
       </nav>
       <div className="sidebarDivider" />
       <button className={`addGameNav ${view === 'create' ? 'active' : ''}`} onClick={() => changeView('create')}><Plus />Adicionar jogo<ArrowUpRight /></button>
@@ -158,7 +161,7 @@ export default function App() {
     <main className="mainContent">
       <header className="topbar"><div className="breadcrumb">Sua coleção<ChevronRight /><b>{viewNames[view]}</b></div><div className="topbarRight"><span className="platformChip"><Gamepad2 />PLAYSTATION 2</span><span className="topbarDivider" /><span className={`serverBadge ${opl?.online ? 'online' : ''}`}><span className="statusDot" />{opl?.online ? 'SERVIDOR online' : 'SERVIDOR offline'}</span></div></header>
       <div className="pageContent">
-        <section className="pageHeading"><div><h1>{viewNames[view]}</h1><p>{view === 'library' ? 'Consulte e gerencie seus jogos de PlayStation 2.' : view === 'installed' ? 'Jogos disponíveis no servidor SMB.' : view === 'downloads' ? 'Acompanhe o progresso e o status dos downloads.' : view === 'settings' ? 'Defina o local dos arquivos do servidor e dos jogos.' : 'Adicione um jogo ou importe uma ISO da sua coleção.'}</p></div><div className="headingActions">{view === 'installed' && <button disabled={repairing} onClick={async () => { setRepairing(true); try { const result = await window.games.repairCovers(); notify(`${result.repaired} capas reparadas · ${result.missingId} sem Game ID · ${result.missingCover} sem capa`); await load(); } catch (error) { notify(errorText(error), true); } finally { setRepairing(false); } }}>{repairing ? <Loader2 className="spin" /> : <RefreshCw />}Reparar capas</button>}<button className="iconButton" title="Atualizar coleção" aria-label="Atualizar coleção" disabled={loading || storageBusy} onClick={() => void load()}><RefreshCw className={loading ? 'spin' : ''} /></button>{view !== 'create' && view !== 'settings' && <button className="primary" onClick={() => changeView('create')}><Plus />Adicionar jogo</button>}</div></section>
+        <section className="pageHeading"><div><h1>{viewNames[view]}</h1><p>{view === 'achievements' ? 'Consulte seu progresso no RetroAchievements.' : view === 'library' ? 'Consulte e gerencie seus jogos de PlayStation 2.' : view === 'installed' ? 'Jogos disponíveis no servidor SMB.' : view === 'downloads' ? 'Acompanhe o progresso e o status dos downloads.' : view === 'settings' ? 'Defina o local dos arquivos do servidor e dos jogos.' : 'Adicione um jogo ou importe uma ISO da sua coleção.'}</p></div><div className="headingActions">{view === 'installed' && <button disabled={repairing} onClick={async () => { setRepairing(true); try { const result = await window.games.repairCovers(); notify(`${result.repaired} capas reparadas · ${result.missingId} sem Game ID · ${result.missingCover} sem capa`); await load(); } catch (error) { notify(errorText(error), true); } finally { setRepairing(false); } }}>{repairing ? <Loader2 className="spin" /> : <RefreshCw />}Reparar capas</button>}<button className="iconButton" title="Atualizar coleção" aria-label="Atualizar coleção" disabled={loading || storageBusy} onClick={() => void load()}><RefreshCw className={loading ? 'spin' : ''} /></button>{view !== 'create' && view !== 'settings' && view !== 'achievements' && <button className="primary" onClick={() => changeView('create')}><Plus />Adicionar jogo</button>}</div></section>
 
         {(view === 'library' || view === 'installed') && <>
           <section className={`feature ${nowPlaying ? 'isPlaying' : ''}`}>
@@ -179,7 +182,7 @@ export default function App() {
         </>}
 
         {loadError && <div className="errorBanner" role="alert"><AlertCircle /><span>{loadError}</span><button onClick={() => void load()}>Tentar novamente</button></div>}
-        {view === 'settings' ? <Settings onChanged={load} onBusy={setStorageBusy} locked={storageBusy} /> : view === 'create' ? <CreateGame onSaved={load} /> : view === 'downloads' ? <DownloadsPanel downloads={Object.values(downloads)} onExplore={() => changeView('library')} /> : <section id="collection" className="collectionSection">
+        {view === 'achievements' ? <Achievements/> : view === 'settings' ? <Settings onChanged={load} onBusy={setStorageBusy} locked={storageBusy} /> : view === 'create' ? <CreateGame onSaved={load} /> : view === 'downloads' ? <DownloadsPanel downloads={Object.values(downloads)} onExplore={() => changeView('library')} /> : <section id="collection" className="collectionSection">
           <div className="sectionTop"><div className="collectionTabs" role="group" aria-label="Coleção"><button className={view === 'library' ? 'selected' : ''} onClick={() => changeView('library')}>Todos os jogos<span>{number(catalogTotal)}</span></button><button className={view === 'installed' ? 'selected' : ''} onClick={() => changeView('installed')}>Instalados<span>{installed.length}</span></button></div><span className="sortLabel">A — Z</span></div>
           <div className="toolbar"><label className="searchBox"><Search /><input ref={searchInput} aria-label="Buscar jogos" placeholder="Buscar pelo título do jogo" value={search} onChange={event => setSearch(event.target.value)} />{search ? <button className="clearSearch" aria-label="Limpar busca" onClick={() => setSearch('')}><X /></button> : <kbd>Ctrl K</kbd>}</label><span className="resultCount">{loading ? 'Atualizando…' : `${number(view === 'installed' ? localGames.length : total)} jogos${query ? ' encontrados' : ''}`}</span></div>
           {activeDownloads.length > 0 && <button className="downloadStrip" onClick={() => changeView('downloads')}><span className="downloadStripIcon"><Download /></span><span><b>{activeDownloads.length === 1 ? 'Download em andamento' : `${activeDownloads.length} downloads em andamento`}</b><small>{activeDownloads[0].fileName}</small></span><div className="stripProgress"><div className="progress"><i style={{ width: `${activeDownloads[0].percent}%` }} /></div><small>{activeDownloads[0].percent}%</small></div><ArrowRight /></button>}

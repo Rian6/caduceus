@@ -78,20 +78,13 @@ function fixtureAPI(games) {
 let window, server;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 app.whenReady().then(async () => {
-  const covers = fs.readdirSync(path.join(root, 'oplserver/PS2/ART')).filter(name => /_COV.jpg$/i.test(name));
-  const {DatabaseSync} = require('node:sqlite');
-  const database = new DatabaseSync(path.join(root, 'database/catalog.sqlite3'), {readOnly:true});
-  const fixtures = covers.map((cover, index) => {
-    const gameId = cover.replace('_COV.jpg', '');
-    const row = database.prepare('SELECT title FROM games WHERE game_id=? LIMIT 1').get(gameId);
-    const titles = {'SCES_504.92':'Final Fantasy X-2', 'SLES_505.05':'Grand Theft Auto: San Andreas', 'SLES_525.85':'Burnout 3: Takedown', 'SLES_529.27':'Grand Theft Auto: San Andreas', 'SLES_820.52':'Metal Gear Solid 3: Snake Eater'};
-    return {_id:String(index+1), title:row?.title || titles[gameId] || gameId, console:'PS2', gameId,
-      icon:'data:image/jpeg;base64,'+fs.readFileSync(path.join(root,'oplserver/PS2/ART',cover)).toString('base64'),
-      downloaded:index<2, coverInstalled:index<2, downloadUrl:'https://example.invalid/game.iso'};
-  });
-  database.close();
+  // Synthetic fixtures: never read the user's catalog or installed games.
+  const icon='data:image/png;base64,'+fs.readFileSync(path.join(root,'assets/caduceus-icon.png')).toString('base64');
+  const fixtures=['Final Fantasy X-2','Grand Theft Auto: San Andreas','Burnout 3: Takedown','Metal Gear Solid 3: Snake Eater','Bully'].map((title,index)=>({
+    _id:String(index+1),title,console:'PS2',gameId:'TEST_'+String(index+1),icon,
+    downloaded:index<2,coverInstalled:index<2,downloadUrl:'https://example.invalid/game.iso'
+  }));
   fixtures[0].ra={status:'compatible',count:12,id:2772,title:'RA fixture',hash:'fe8b1b6c64c24e7eaaef6de8af1aeb9e',checkedAt:Date.now()};
-  assert(fixtures.length >= 3, 'Need local cover fixtures');
   fixtures.push({_id:'6', title:'Um clássico sem capa', console:'PS2', icon:'data:image/png;base64,broken', downloads:[]});
   const index = fs.readFileSync(path.join(root,'dist/index.html'),'utf8').replace('<head>', `<head><script>(${fixtureAPI.toString()})(${JSON.stringify(fixtures)})</script>`);
   server = http.createServer((request, response) => {

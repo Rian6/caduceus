@@ -4,31 +4,15 @@
 
 # Caduceus
 
-### Atividade no Discord
-
-Em **Configurações → Discord**, clique em **Conectar Discord** e autorize sua conta no navegador. A atividade é ativada após a autorização. O usuário não precisa criar aplicações ou informar IDs e tokens. A sessão OAuth2 com PKCE é salva com proteção do Windows e restaurada ao abrir o app.
-
-Configuração única para o mantenedor: na aplicação `1554196376756293712` do [Discord Developer Portal](https://discord.com/developers/applications), habilite **Public Client** em OAuth2 e registre exatamente `http://127.0.0.1:53682/discord/callback` em Redirects. O cliente usa o escopo `identify`, sem Client Secret no executável. O nome exibido na atividade vem da aplicação cadastrada. Sem essas configurações no portal, o login será recusado pelo Discord.
-
-Com o Discord desktop aberto e o compartilhamento de atividades permitido, o jogo detectado aparece com **PlayStation 2 · Console real**. Novas conquistas recebidas do PS2 ganham destaque por aproximadamente 30 segundos. A atividade é removida ao terminar a sessão, desativar a integração ou fechar o Caduceus. A conexão usa [RPC local do Discord](https://docs.discord.com/developers/topics/rpc), com reconexão automática; conquistas históricas não são publicadas como atividade ao vivo.
-
-### Compatibilidade de ISOs com RetroAchievements
-
-Em **Configurações → Biblioteca**, use **Verificar compatibilidade** após conectar a conta RA. O selo com troféu mostra quantas conquistas ativas existem para o hash da imagem instalada. O filtro **Com conquistas**, ao lado da busca, considera toda a coleção, antes da paginação. A identificação também aparece nos detalhes, na importação de ISO, no jogo atual e nos downloads concluídos.
-
-A validação lê `SYSTEM.CNF` e calcula o MD5 do nome e conteúdo do executável `BOOT2`, conforme o [algoritmo oficial de PS2](https://docs.retroachievements.org/developer-docs/game-identification.html). Não usa o MD5 da ISO inteira, nem presume compatibilidade pelo título ou serial. O [catálogo de hashes da API](https://api-docs.retroachievements.org/v1/get-game-list.html) é consultado com `i=21&h=1&f=1` e armazenado por 24 horas no cache local, sem credenciais. Offline, o último catálogo disponível continua utilizável.
-
-Arquivos ainda não baixados ficam como **ISO não verificada**. BIN, ZSO e outros formatos não são validados nesta implementação. Falhas de leitura ou de conexão não são apresentadas como incompatibilidade. Substituir uma ISO invalida seu hash em memória. Um hash reconhecido confirma o conjunto de conquistas, mas não elimina as limitações experimentais de telemetria, softcore e SMB do OPL-RA.
-
 Gerenciador de jogos **PlayStation 2 para Windows**, com biblioteca local, downloads, importação de ISOs e servidor integrado para jogar pela rede usando o **Open PS2 Loader (OPL)**.
 
 **Electron · React · TypeScript · Vite · SQLite**
 
 ## Download para Windows
 
-**[Baixar Caduceus v1.0.0 — instalador Windows x64 (.exe)](https://github.com/Rian6/caduceus/releases/download/v1.0.0/Caduceus-Setup-1.0.0-x64.exe)**
+**[Baixar Caduceus v1.1.0 — instalador Windows x64 (.exe)](https://github.com/Rian6/caduceus/releases/download/v1.1.0/Caduceus-Setup-1.1.0-x64.exe)**
 
-[Notas da versão e arquivos de verificação](https://github.com/Rian6/caduceus/releases/tag/v1.0.0)
+[Notas da versão e arquivos de verificação](https://github.com/Rian6/caduceus/releases/tag/v1.1.0)
 
 O instalador inicia com um catálogo vazio, sem contas conectadas, caches pessoais ou ISOs. Após instalar, adicione seus jogos ou importe sua base em Configurações. Esta versão não possui assinatura digital de um certificado de editor.
 
@@ -47,11 +31,28 @@ O instalador inicia com um catálogo vazio, sem contas conectadas, caches pessoa
 | Servidor | Consultar IP e porta, alterar a porta e escolher onde armazenar os jogos. |
 | Armazenamento | Migrar a pasta inteira do OPL Server ou recriá-la em outro local. |
 | Catálogo | Importar bases SQLite/JSON e salvar um backup SQLite. |
-| Conquistas | Consultar jogos e progresso de uma conta RetroAchievements. |
+| Conquistas | Consultar progresso, receber conquistas ao vivo com OPL-RA e verificar a compatibilidade das ISOs. |
+| Discord | Compartilhar jogo, capa e a última conquista da sessão no perfil. |
 | Aparência | Alternar entre temas claro e escuro, com a preferência salva. |
 | Tutorial | Seguir o guia da primeira abertura ou revê-lo nas configurações. |
 
 Jogos sem capa ou URL continuam na biblioteca. O download fica disponível quando há um link cadastrado.
+
+### Atividade no Discord
+
+Em **Configurações → Discord**, clique em **Conectar Discord** e autorize sua conta no navegador. A atividade é ativada após a autorização. O usuário não precisa criar aplicações ou informar IDs e tokens. A sessão OAuth2 com PKCE é salva com proteção do Windows e restaurada ao abrir o app.
+
+Configuração única para o mantenedor: na aplicação `1554196376756293712` do [Discord Developer Portal](https://discord.com/developers/applications), habilite **Public Client** em OAuth2 e registre exatamente `http://127.0.0.1:53682/discord/callback` em Redirects. O cliente usa o escopo `identify`, sem Client Secret no executável. O nome exibido na atividade vem da aplicação cadastrada. Sem essas configurações no portal, o login será recusado pelo Discord.
+
+Com o Discord desktop aberto e o compartilhamento de atividades permitido, o jogo detectado aparece com **Caduceus · PlayStation 2**, com a capa cadastrada quando disponível. O subtítulo mostra a última conquista desbloqueada na sessão, até trocar ou encerrar o jogo. A atividade é removida ao terminar a sessão, desativar a integração ou fechar o Caduceus. A conexão usa [RPC local do Discord](https://docs.discord.com/developers/topics/rpc), com reconexão automática; conquistas históricas não são publicadas como atividade ao vivo.
+
+### Compatibilidade de ISOs com RetroAchievements
+
+Em **Configurações → Biblioteca**, use **Verificar compatibilidade** após conectar a conta RA. O selo com troféu mostra quantas conquistas ativas existem para o hash da imagem instalada. O filtro **Com conquistas**, ao lado da busca, considera toda a coleção, antes da paginação. A identificação também aparece nos detalhes, na importação de ISO, no jogo atual e nos downloads concluídos.
+
+A validação lê `SYSTEM.CNF` e calcula o MD5 do nome e conteúdo do executável `BOOT2`, conforme o [algoritmo oficial de PS2](https://docs.retroachievements.org/developer-docs/game-identification.html). Não usa o MD5 da ISO inteira, nem presume compatibilidade pelo título ou serial. O [catálogo de hashes da API](https://api-docs.retroachievements.org/v1/get-game-list.html) é consultado com `i=21&h=1&f=1` e armazenado por 24 horas no cache local, sem credenciais. Offline, o último catálogo disponível continua utilizável.
+
+Arquivos ainda não baixados ficam como **ISO não verificada**. BIN, ZSO e outros formatos não são validados nesta implementação. Falhas de leitura ou de conexão não são apresentadas como incompatibilidade. Substituir uma ISO invalida seu hash em memória. Um hash reconhecido confirma o conjunto de conquistas, mas não elimina as limitações experimentais de telemetria, softcore e SMB do OPL-RA.
 
 ## Interface
 

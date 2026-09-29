@@ -35,3 +35,12 @@ achievement-engine/
 discord-presence.json
 discord-login.enc
 discord-login.enc.tmp
+
+# Dados pessoais e arquivos de distribuicao locais
+package.zip
+*.sqlite3
+*.sqlite3-*
+*.sqlite-wal
+*.sqlite-shm
+vendor/xerabora/credentials
+vendor/xerabora/games

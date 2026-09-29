@@ -10,6 +10,8 @@ O Caduceus transforma seu computador em um servidor de jogos para o PlayStation 
 
 O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em uma interface só. Adicione seus jogos, conecte o PS2 por cabo de rede e use os dados exibidos no app para configurar o OPL.
 
+Para servir os jogos, usamos o **[OPLServer, do projeto OPL-Server de elmariolo](https://github.com/elmariolo/OPL-Server)**. Para as conquistas ao vivo, incorporamos uma adaptação do **[xeRAbora, de hacan359](https://github.com/hacan359/xerabora)**. O Caduceus reúne esses componentes com sua própria interface e biblioteca.
+
 **[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.1.0/Caduceus-Setup-1.1.0-x64.exe)**
 
 [Versão 1.1.0 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.1.0)
@@ -18,10 +20,10 @@ O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em
 
 ## Como funciona
 
-As ISOs ficam no computador. O **OPLServer**, integrado ao Caduceus, disponibiliza esses arquivos pela rede, e o **Open PS2 Loader (OPL)** no PS2 carrega o jogo.
+As ISOs ficam no computador. O **[OPLServer](https://github.com/elmariolo/OPL-Server)** disponibiliza esses arquivos por SMB, e o **[Open PS2 Loader (OPL)](https://github.com/ps2homebrew/Open-PS2-Loader)** no PS2 carrega o jogo. São componentes com funções diferentes: o servidor roda no Windows e o carregador roda no console.
 
 ```text
-Computador com Caduceus e suas ISOs
+Computador: Caduceus + OPLServer + suas ISOs
                  │
              Rede local
                  │
@@ -59,7 +61,7 @@ Encontre e organize os jogos sem precisar trabalhar diretamente com as pastas do
 
 ## Servidor e armazenamento
 
-O servidor faz parte do aplicativo. Nas configurações, você encontra o IP do computador, a porta e o nome do compartilhamento para preencher no OPL.
+O instalador inclui o OPLServer e suas dependências. O Caduceus inicia esse componente e configura a pasta compartilhada e a porta. Nas configurações, você encontra o IP do computador, a porta e o nome do compartilhamento para preencher no OPL.
 
 A porta padrão é **1024** e pode ser alterada. Sempre use a mesma porta no aplicativo e no console.
 
@@ -80,7 +82,7 @@ A biblioteca usa um banco **SQLite local**. Você pode importar uma base JSON ou
 
 A importação preserva os registros que já existem. Para experimentar o formato, há um [catálogo JSON de demonstração](examples/jogos-teste.json).
 
-O backup guarda os dados do catálogo, como títulos, capas e links. **ISOs, saves, credenciais e configurações não fazem parte desse backup.** Importar uma base também não instala os jogos.
+O backup guarda os dados do catálogo, como títulos, endereços das capas e links de download. **ISOs, arquivos de capas, saves, credenciais e configurações não fazem parte desse backup.** Importar uma base também não instala os jogos.
 
 ## Recursos extras
 
@@ -90,7 +92,11 @@ A aba **Conquistas** permite consultar os jogos e o progresso da sua conta, abri
 
 Para conectar, informe usuário, senha e Web API Key, disponível nas [configurações do RetroAchievements](https://retroachievements.org/settings). A senha não é salva; o token e a chave ficam protegidos pelo Windows.
 
-O aplicativo também inclui uma integração experimental com **OPL-RA e xeRAbora** para receber desbloqueios do PS2, com notificações e som. Na própria aba, o guia **Como funciona** explica a configuração, e **Som e configuração do PS2** permite salvar o `OPL-RA.ELF`, ajustar o volume e controlar a conexão ao vivo.
+As conquistas ao vivo usam o **[xeRAbora](https://github.com/hacan359/xerabora)** em conjunto com o **[OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra)**. O OPL-RA envia a telemetria do PS2 ao componente xeRAbora no computador, que processa as conquistas e se comunica com o RetroAchievements. O Caduceus apresenta os eventos em sua própria interface, com notificações e som.
+
+Incluímos um adaptador baseado no **xeRAbora v0.1.0-alpha.12**, executado em segundo plano, com controle local e armazenamento do token protegido pelo Windows. As alterações estão documentadas no [patch incorporado](vendor/xerabora/caduceus.patch) e no [guia do componente](vendor/xerabora/README.md). O OPLServer permanece independente, responsável pelo acesso às ISOs pela rede.
+
+Na aba Conquistas, o guia **Como funciona** explica a configuração, e **Som e configuração do PS2** permite salvar o `OPL-RA.ELF`, ajustar o volume e controlar a conexão ao vivo.
 
 **Conquistas ao vivo funcionam apenas em softcore. O fork OPL-RA pode apresentar falhas de carregamento com jogos via SMB.** Para testar esse recurso, use USB ou disco compatível. Para jogar normalmente pela rede sem conquistas, use o OPL normal.
 
@@ -154,13 +160,16 @@ O cliente usa OAuth2 com PKCE e escopo `identify`, sem Client Secret ou token de
 
 </details>
 
-## Créditos
+## Projetos utilizados e créditos
 
-O Caduceus integra o OPLServer e utiliza projetos da comunidade PlayStation 2 e RetroAchievements:
+O Caduceus utiliza o trabalho destes projetos para oferecer o servidor e as integrações:
 
-- [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader)
-- [OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra)
-- [xeRAbora](https://github.com/hacan359/xerabora)
-- [RetroAchievements](https://retroachievements.org/) e [rcheevos](https://github.com/RetroAchievements/rcheevos)
+| Projeto | Uso no Caduceus |
+| --- | --- |
+| [OPL-Server / OPLServer — elmariolo](https://github.com/elmariolo/OPL-Server) | Servidor SMB incorporado que disponibiliza as ISOs ao PS2. |
+| [Open PS2 Loader — ps2homebrew](https://github.com/ps2homebrew/Open-PS2-Loader) | Carregador executado no console para acessar os jogos. |
+| [xeRAbora — hacan359](https://github.com/hacan359/xerabora) | Base do componente adaptado que recebe a telemetria e processa conquistas ao vivo. |
+| [OPL-RA — hacan359](https://github.com/hacan359/Open-PS2-Loader/tree/ra) | Fork do OPL usado para enviar a telemetria do PS2 ao componente de conquistas. |
+| [RetroAchievements](https://retroachievements.org/) e [rcheevos](https://github.com/RetroAchievements/rcheevos) | Serviço de conquistas, API de consulta e biblioteca utilizada pelo xeRAbora. |
 
-Versões, adaptações e licenças dos componentes de conquistas estão em [vendor/xerabora](vendor/xerabora/README.md). As capturas deste README usam dados de demonstração.
+Os componentes mantêm a autoria e as licenças de seus respectivos projetos. Versões, adaptações e licenças dos componentes de conquistas estão em [vendor/xerabora](vendor/xerabora/README.md). O som das notificações é sintetizado pelo Caduceus. As capturas deste README usam dados de demonstração.

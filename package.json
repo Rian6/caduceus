@@ -1,6 +1,6 @@
 {
   "name": "roms-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
@@ -33,7 +33,9 @@
   "build": {
     "appId": "br.com.ps2library.app",
     "productName": "Caduceus",
-    "directories": {"output":"release"},
+    "directories": {
+      "output": "release"
+    },
     "artifactName": "Caduceus-Setup-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
@@ -41,11 +43,29 @@
       "package.json"
     ],
     "extraResources": [
-      {"from":"vendor/xerabora","to":"xerabora","filter":["xerabora-caduceus.exe","caduceus.patch","OPL-RA.ELF","LICENSE-*.txt","SHA256SUMS","CADUCEUS-SHA256SUMS","README.md"]},
+      {
+        "from": "vendor/xerabora",
+        "to": "xerabora",
+        "filter": [
+          "xerabora-caduceus.exe",
+          "caduceus.patch",
+          "OPL-RA.ELF",
+          "LICENSE-*.txt",
+          "SHA256SUMS",
+          "CADUCEUS-SHA256SUMS",
+          "README.md"
+        ]
+      },
       {
         "from": "oplserver",
         "to": "oplserver",
-        "filter": ["OPLServer.exe", "OPLServer.config", "SMBLibrary.dll", "SMBLibrary.Win32.dll", "Utilities.dll"]
+        "filter": [
+          "OPLServer.exe",
+          "OPLServer.config",
+          "SMBLibrary.dll",
+          "SMBLibrary.Win32.dll",
+          "Utilities.dll"
+        ]
       },
       {
         "from": "build/icon.png",

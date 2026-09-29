@@ -1,0 +1,145 @@
+--- a/client/src/webui.c
++++ b/client/src/webui.c
+@@ -987,11 +987,18 @@
+             const char *e = strchr(v, '&');
+             size_t len = e != NULL ? (size_t)(e - v) : strlen(v);
+ 
+-            if (len >= size)
+-                len = size - 1;
+-            memcpy(out, v, len);
+-            out[len] = '\0';
+-            urldecode(out);
++            char decoded[2048];
++            if (len >= sizeof(decoded)) return -1;
++            memcpy(decoded, v, len);
++            decoded[len] = '\0';
++            urldecode(decoded);
++            len = strlen(decoded);
++            if (len >= size) {
++                memset(decoded, 0, sizeof(decoded));
++                return -1;
++            }
++            memcpy(out, decoded, len + 1);
++            memset(decoded, 0, sizeof(decoded));
+             return 1;
+         }
+         p = strchr(p, '&');
+@@ -1060,7 +1067,11 @@
+                     g_lib_at = 0;
+                 }
+                 n = snprintf(out, sizeof(out), "{\"ok\":true}");
+-            } else if (rc == RC_INVALID_CREDENTIALS || rc == RC_EXPIRED_TOKEN || rc == RC_ACCESS_DENIED) {
++            } else if (rc == RC_ACCESS_DENIED) {
++                n = snprintf(out, sizeof(out), "{\"ok\":false,\"error\":\"access denied\"}");
++            } else if (rc == RC_EXPIRED_TOKEN) {
++                n = snprintf(out, sizeof(out), "{\"ok\":false,\"error\":\"expired token\"}");
++            } else if (rc == RC_INVALID_CREDENTIALS) {
+                 n = snprintf(out, sizeof(out), "{\"ok\":false,\"error\":\"wrong name or password\"}");
+             } else {
+                 n = snprintf(out, sizeof(out),
+@@ -1489,6 +1500,7 @@
+ 
+ void webui_open_browser(int port)
+ {
++    (void)port; return; /* Caduceus owns the interface. */
+     char url[64];
+ 
+     snprintf(url, sizeof(url), "http://127.0.0.1:%d/", port);
+--- a/client/src/main.c
++++ b/client/src/main.c
+@@ -834,7 +834,7 @@
+ 
+             webui_set_webapi(config_load_apikey(k, sizeof(k)));
+         }
+-        webui_set_lan(config_load_lan());
++        webui_set_lan(0);
+         follow_set_enabled(config_load_follow());
+         only = webui_start(XERABORA_UI_PORT);
+         if (only == SOCK_INVALID)
+@@ -899,7 +899,7 @@
+        not open. */
+     follow_set_enabled(config_load_follow());
+     if (ui_wanted) {
+-        webui_set_lan(config_load_lan());
++        webui_set_lan(0);
+         ui = webui_start(ui_port);
+         if (ui != SOCK_INVALID) {
+             ui_port = webui_port();
+--- a/client/src/config.c
++++ b/client/src/config.c
+@@ -1,3 +1,5 @@
++#include <windows.h>
++#include <wincrypt.h>
+ #include "config.h"
+ 
+ #include <stdio.h>
+@@ -28,46 +30,34 @@
+ /* File format: two lines, username then token. */
+ int config_load_credentials(char *user, size_t user_size, char *token, size_t token_size)
+ {
+-    char path[600];
+-    FILE *f;
+-
+-    if (config_credentials_path(path, sizeof(path)) != 0)
+-        return 0;
+-
+-    f = fopen(path, "r");
+-    if (f == NULL)
+-        return 0;
+-
++    char path[600]; unsigned char buffer[4096]; FILE *f; size_t n;
++    DATA_BLOB input, output = {0}; char *separator;
+     user[0] = token[0] = '\0';
+-    if (fgets(user, (int)user_size, f) == NULL || fgets(token, (int)token_size, f) == NULL) {
+-        fclose(f);
+-        return 0;
+-    }
+-    fclose(f);
+-
+-    user[strcspn(user, "\r\n")] = '\0';
+-    token[strcspn(token, "\r\n")] = '\0';
+-    return user[0] != '\0' && token[0] != '\0';
++    if (config_credentials_path(path, sizeof(path)) != 0) return 0;
++    f = fopen(path, "rb"); if (!f) return 0;
++    n = fread(buffer, 1, sizeof(buffer), f); fclose(f);
++    if (n < 5 || memcmp(buffer, "CDP1", 4)) return 0;
++    input.pbData = buffer + 4; input.cbData = (DWORD)(n - 4);
++    if (!CryptUnprotectData(&input, NULL, NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &output)) return 0;
++    if (!output.cbData || output.pbData[output.cbData-1] != 0) { LocalFree(output.pbData); return 0; }
++    separator = strchr((char*)output.pbData, '\n');
++    if (separator) { *separator = 0; snprintf(user, user_size, "%s", (char*)output.pbData); snprintf(token, token_size, "%s", separator+1); }
++    SecureZeroMemory(output.pbData, output.cbData); LocalFree(output.pbData);
++    return user[0] != 0 && token[0] != 0;
+ }
+ 
+ int config_save_credentials(const char *user, const char *token)
+ {
+-    char path[600];
+-    FILE *f;
+-
+-    if (config_credentials_path(path, sizeof(path)) != 0)
+-        return -1;
+-
+-    f = fopen(path, "w");
+-    if (f == NULL)
+-        return -1;
+-    fprintf(f, "%s\n%s\n", user, token);
+-    fclose(f);
+-#ifndef _WIN32
+-    /* The token logs in as the user: keep the file private. */
+-    chmod(path, 0600);
+-#endif
+-    return 0;
++    char path[600], plain[1024]; FILE *f; DATA_BLOB input, output = {0}; int ok;
++    if (config_credentials_path(path, sizeof(path)) != 0) return -1;
++    snprintf(plain, sizeof(plain), "%s\n%s", user, token);
++    input.pbData = (BYTE*)plain; input.cbData = (DWORD)strlen(plain)+1;
++    ok = CryptProtectData(&input, L"Caduceus RetroAchievements", NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &output);
++    SecureZeroMemory(plain, sizeof(plain)); if (!ok) return -1;
++    f = fopen(path, "wb"); if (!f) { LocalFree(output.pbData); return -1; }
++    ok = fwrite("CDP1", 1, 4, f) == 4 && fwrite(output.pbData, 1, output.cbData, f) == output.cbData;
++    if (fclose(f)) ok=0;
++    LocalFree(output.pbData); return ok ? 0 : -1;
+ }
+ 
+ static int config_apikey_path(char *out, size_t size)

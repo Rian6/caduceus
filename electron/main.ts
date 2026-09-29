@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, nativeImage, dialog, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, session, nativeImage, dialog, safeStorage, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import net from 'net';
@@ -10,13 +10,55 @@ import { OplStorage, StorageMode, validatePort } from './storage';
 import {assertPortAvailable, localAddresses} from './network';
 import {importCatalog} from './catalog-import';
 import {saveCatalogBackup} from './catalog-backup';
+import {deleteCatalogGame,prepareDeletedGames} from './catalog-delete';
 import {RetroAchievements} from './retroachievements';
+import {DiscordPresence} from './discord-presence';
+import {PlaySession} from './play-session';
+const playSession=new PlaySession();
+import {DiscordAuth} from './discord-auth';
+import {DISCORD_CLIENT_ID} from './discord-config';
+const discordAuth=new DiscordAuth(()=>DISCORD_CLIENT_ID,()=>path.join(app.getPath('userData'),'cache','discord-login.enc'),safeStorage,url=>shell.openExternal(url));
+const discord=new DiscordPresence(()=>path.join(app.getPath('userData'),'discord-presence.json'),()=>broadcast('discord:status',discordStatus()));
+discord.requireAccount=true;
+function discordStatus(){const {clientId,...status}=discord.status();return{...status,user:discordAuth.user(),configured:discordAuth.configured()}}
+let discordAuthBusy=false;
+handle('discord:get',()=>discordStatus());
+handle('discord:set',(_event,enabled:unknown)=>{
+  if(typeof enabled!=='boolean')throw Error('Configuração inválida.');
+  if(enabled&&!discordAuth.user())throw Error('Conecte sua conta Discord primeiro.');
+  discord.configure({enabled,clientId:DISCORD_CLIENT_ID});return discordStatus();
+});
+handle('discord:connect',async()=>{
+  if(discordAuthBusy)throw Error('Aguarde a autorização no navegador.');discordAuthBusy=true;
+  try{const user=await discordAuth.login();discord.setAccount(user.id);discord.configure({enabled:true,clientId:DISCORD_CLIENT_ID});return discordStatus()}finally{discordAuthBusy=false}
+});
+handle('discord:disconnect',async()=>{
+  discord.setAccount(null);discord.configure({enabled:false,clientId:DISCORD_CLIENT_ID});await discordAuth.disconnect();broadcast('discord:status',discordStatus());return discordStatus();
+});
+import {RACompatibility} from './ra-compatibility';
+const compatibility=new RACompatibility(()=>path.join(app.getPath('userData'),'cache','ra-compatibility.json'),()=>achievements.compatibilityIndex());
+handle('ra:compatibility-sync',async()=>{await compatibility.sync(true);return true});
+import {Xerabora,XERA_PORT} from './xerabora';
+const xeraDirectory=()=>app.isPackaged?path.join(process.resourcesPath,'xerabora'):path.join(__dirname,'..','vendor','xerabora');
+const xera=new Xerabora(xeraDirectory,(channel,value)=>{if(channel==='xera:unlock'){achievements.invalidate();discord.unlock(value)}if(channel==='xera:status'){playSession.console(value.connected);const row=value.connected&&value.game?database().prepare('SELECT icon FROM games WHERE title = ? COLLATE NOCASE LIMIT 1').get(value.game) as {icon?:string}|undefined:undefined;discord.updateConsole({...value,icon:row?.icon});}broadcast(channel,value)},()=>path.join(app.getPath('userData'),'achievement-engine'));
+handle('xera:status',()=>xera.status());
+handle('xera:start',()=>xera.start());
+handle('xera:stop',()=>xera.stop());
+handle('xera:elf',async()=>{const result=await dialog.showSaveDialog({title:'Salvar OPL-RA para o PS2',defaultPath:'OPL-RA.ELF',filters:[{name:'Executável PS2',extensions:['ELF']}]});if(!result.canceled&&result.filePath){fs.copyFileSync(path.join(xeraDirectory(),'OPL-RA.ELF'),result.filePath);return true}return false});
+app.on('before-quit',()=>xera.stop());
 
 import {RALoginCache} from './ra-login-cache';
 const achievements=new RetroAchievements(fetch,new RALoginCache(()=>path.join(app.getPath('userData'),'cache','retroachievements-login.enc'),safeStorage));
 handle('ra:status',()=>achievements.status());
-handle('ra:connect',(_event,user:unknown,key:unknown)=>achievements.connect(user,key));
-handle('ra:disconnect',()=>achievements.disconnect());
+let achievementAccountBusy=false;
+handle('ra:connect',async(_event,user:unknown,key:unknown,password:unknown)=>{
+  if(achievementAccountBusy)throw new Error('Aguarde a conexão atual terminar.');achievementAccountBusy=true;
+  try{return await achievements.connect(user,key,()=>xera.login(user,password))}finally{achievementAccountBusy=false}
+});
+handle('ra:disconnect',async()=>{
+  if(achievementAccountBusy)throw new Error('Aguarde a conexão atual terminar.');achievementAccountBusy=true;
+  try{await xera.logout();return achievements.disconnect()}finally{achievementAccountBusy=false}
+});
 handle('ra:games',(_event,page:unknown)=>achievements.games(page));
 handle('ra:game',(_event,id:unknown)=>achievements.game(id));
 
@@ -36,7 +78,7 @@ function handle(channel:string, listener:Parameters<typeof ipcMain.handle>[1]) {
   });
 }
 
-type DownloadState={gameKey:string;fileName:string;url:string;path:string;icon?:string|null;state:'starting'|'progressing'|'completed'|'cancelled'|'interrupted'|'processing';received:number;total:number;percent:number;gameId?:string|null;coverInstalled?:boolean;error?:string};
+type DownloadState={ra?:import('./ra-compatibility').RACompatible;gameKey:string;fileName:string;url:string;path:string;icon?:string|null;state:'starting'|'progressing'|'completed'|'cancelled'|'interrupted'|'processing';received:number;total:number;percent:number;gameId?:string|null;coverInstalled?:boolean;error?:string};
 const downloads=new Map<string,DownloadState>();
 let catalogImportBusy = false;
 handle('catalog:backup', async () => {
@@ -94,7 +136,8 @@ function syncPackagedSeed(target:DatabaseSync){
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     target.exec('BEGIN');
     try{
-      for(const r of rows)insert.run(
+      const excluded=target.prepare('SELECT 1 FROM deleted_seed_games WHERE title=? AND console=?');
+      for(const r of rows)if(!excluded.get(r.title,r.console||'PS2'))insert.run(
         r.mongo_id??null,r.title,r.console||'PS2',r.icon??null,r.original_name??null,r.source??null,
         r.source_page??null,r.game_id??null,Number(r.cover_installed||0),r.download_url??null,
         r.downloads_json||'[]',r.size??null,r.raw_json??null,r.created_at||new Date().toISOString(),
@@ -147,6 +190,7 @@ function database(){
   `);
   // Em builds instalados, incorpora jogos que existam no catálogo empacotado
   // mas ainda não estejam no banco persistente de uma instalação anterior.
+  prepareDeletedGames(db);
   syncPackagedSeed(db);
   return db;
 }
@@ -180,7 +224,7 @@ async function publishOpl(){const s=await oplStatus();broadcast('opl:status',s);
 
 function extractGameId(filePath:string){const fd=fs.openSync(filePath,'r');try{const stat=fs.fstatSync(fd);const chunk=1024*1024,overlap=256,scanLimit=Math.min(stat.size,128*1024*1024);let pos=0,tail=Buffer.alloc(0);while(pos<scanLimit){const len=Math.min(chunk,scanLimit-pos),b=Buffer.allocUnsafe(len);fs.readSync(fd,b,0,len,pos);const data=Buffer.concat([tail,b]).toString('latin1');const m=data.match(/BOOT2?\s*=\s*cdrom0:\\+([A-Z]{4}[_-]\d{3}\.\d{2})/i)||data.match(/\b([A-Z]{4}[_-]\d{3}\.\d{2})\b/i);if(m)return m[1].toUpperCase().replace('-','_');tail=b.subarray(Math.max(0,b.length-overlap));pos+=len}return null}finally{fs.closeSync(fd)}}
 async function installCover(icon:string|undefined|null,id:string|null){if(!icon||!id)return false;try{const res=await fetch(icon,{redirect:'follow'});if(!res.ok)return false;const buf=Buffer.from(await res.arrayBuffer());const image=nativeImage.createFromBuffer(buf);if(image.isEmpty())return false;fs.writeFileSync(path.join(artDir(),`${id}_COV.jpg`),image.resize({width:140,height:200,quality:'best'}).toJPEG(92));return true}catch{return false}}
-async function finishGame(state:DownloadState){let id:string|null=null;try{id=extractGameId(state.path)}catch{}const cover=await installCover(state.icon,id);if(id)database().prepare('UPDATE games SET game_id=?,cover_installed=?,updated_at=? WHERE id=?').run(id,cover?1:0,new Date().toISOString(),Number(state.gameKey));const next:DownloadState={...state,state:'completed',percent:100,gameId:id,coverInstalled:cover};downloads.set(state.gameKey,next);broadcast('download:completed',next)}
+async function finishGame(state:DownloadState){let id:string|null=null;try{id=extractGameId(state.path)}catch{}const cover=await installCover(state.icon,id);if(id)database().prepare('UPDATE games SET game_id=?,cover_installed=?,updated_at=? WHERE id=?').run(id,cover?1:0,new Date().toISOString(),Number(state.gameKey));const next:DownloadState={...state,state:'completed',percent:100,gameId:id,coverInstalled:cover,ra:await compatibility.check(state.path)};downloads.set(state.gameKey,next);broadcast('download:completed',next)}
 
 async function copyIsoToLibrary(sourcePath:string, game:any, overwrite=false){
   if(!sourcePath || !fs.existsSync(sourcePath)) throw new Error('Arquivo ISO não encontrado.');
@@ -219,19 +263,38 @@ handle('iso:select',async()=>{
   const r=await dialog.showOpenDialog({title:'Importar ISO de PlayStation 2',properties:['openFile'],filters:[{name:'Imagem de disco PS2',extensions:['iso']}]});
   if(r.canceled||!r.filePaths[0])return null;
   const sourcePath=r.filePaths[0],stat=fs.statSync(sourcePath);
-  return{path:sourcePath,fileName:path.basename(sourcePath),size:stat.size,suggestedTitle:path.parse(sourcePath).name};
+  return{path:sourcePath,fileName:path.basename(sourcePath),size:stat.size,suggestedTitle:path.parse(sourcePath).name,ra:await compatibility.check(sourcePath)};
 });
 handle('iso:import',async(_e,sourcePath:string,game:any,overwrite=false)=>copyIsoToLibrary(sourcePath,game,!!overwrite));
 
-handle('games:list',async(_e,args:any={})=>{const d=database(),page=Math.max(0,Number(args.page)||0),limit=Math.min(100,Math.max(1,Number(args.limit)||20)),search=String(args.search||'').trim(),consoleName=String(args.console||'PS2');const where=search?'WHERE console=? AND title LIKE ? COLLATE NOCASE':'WHERE console=?',params:any[]=search?[consoleName,`%${search}%`]:[consoleName];const rows=d.prepare(`SELECT * FROM games ${where} ORDER BY title COLLATE NOCASE LIMIT ? OFFSET ?`).all(...params,limit,page*limit) as any[];const total=Number((d.prepare(`SELECT COUNT(*) AS n FROM games ${where}`).get(...params) as any).n||0);return{games:rows.map(r=>{const g=rowToGame(r),opts=downloadOptions(g),state=downloads.get(g._id);return{...g,downloaded:(g.originalName?fs.existsSync(path.join(dvdDir(),safeName(String(g.originalName)))):false)||opts.some((o:any)=>fs.existsSync(path.join(dvdDir(),fileNameForDownload(g,o)))),downloadState:state||null}}),total,page,pages:Math.ceil(total/limit)}});
+async function catalogCompatibility(g:any){
+  const names=[g.originalName,...downloadOptions(g).map((o:any)=>fileNameForDownload(g,o))].filter(Boolean);
+  const local=names.map((name:string)=>path.join(dvdDir(),safeName(name))).find((file:string)=>fs.existsSync(file));
+  return {...g,downloaded:!!local,localFileName:local?path.basename(local):undefined,ra:await compatibility.check(local),downloadState:downloads.get(g._id)||null};
+}
+handle('games:list',async(_e,args:any={})=>{
+  const d=database(),page=Math.max(0,Number(args.page)||0),limit=Math.min(100,Math.max(1,Number(args.limit)||20)),search=String(args.search||'').trim(),consoleName=String(args.console||'PS2');
+  const where=search?'WHERE console=? AND title LIKE ? COLLATE NOCASE':'WHERE console=?',params:any[]=search?[consoleName,`%${search}%`]:[consoleName];
+  if(args.raCompatible){
+    const rows=d.prepare(`SELECT * FROM games ${where} ORDER BY title COLLATE NOCASE`).all(...params) as any[];
+    const result=[];
+    for(const row of rows){const game=await catalogCompatibility(rowToGame(row));if(game.ra.status==='compatible')result.push(game)}
+    return{games:result.slice(page*limit,(page+1)*limit),total:result.length,page,pages:Math.ceil(result.length/limit)};
+  }
+  const rows=d.prepare(`SELECT * FROM games ${where} ORDER BY title COLLATE NOCASE LIMIT ? OFFSET ?`).all(...params,limit,page*limit) as any[];
+  const total=Number((d.prepare(`SELECT COUNT(*) AS n FROM games ${where}`).get(...params) as any).n||0);
+  const games=[];for(const row of rows)games.push(await catalogCompatibility(rowToGame(row)));
+  return{games,total,page,pages:Math.ceil(total/limit)};
+});
+
 handle('game:create',async(_e,input:any)=>{const title=String(input?.title||'').trim();if(!title)throw new Error('Informe o título do jogo.');const icon=String(input?.icon||'').trim()||null;const downloadUrl=String(input?.downloadUrl||'').trim()||null;for(const u of [icon,downloadUrl].filter(Boolean) as string[]){const p=new URL(u);if(!['http:','https:'].includes(p.protocol))throw new Error('As URLs devem usar HTTP ou HTTPS.')}const incoming=Array.isArray(input?.downloads)?input.downloads:[];const normalized=incoming.filter((x:any)=>String(x?.url||'').trim()).map((x:any,i:number)=>{const u=new URL(String(x.url));return{name:String(x.name||`Opção ${i+1}`),url:u.toString(),region:String(x.region||''),format:String(x.format||''),size:String(x.size||''),source:String(x.source||'manual'),originalName:String(x.originalName||'')}});if(downloadUrl&&!normalized.length)normalized.push({name:'Download',url:downloadUrl,region:'',format:'',size:'',source:'manual',originalName:String(input.originalName||'')});const now=new Date().toISOString();try{const r=database().prepare(`INSERT INTO games(title,console,icon,original_name,source,download_url,downloads_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`).run(title,'PS2',icon,String(input.originalName||''),'manual',normalized[0]?.url||null,JSON.stringify(normalized),now,now);return rowToGame(database().prepare('SELECT * FROM games WHERE id=?').get(Number(r.lastInsertRowid)))}catch(e:any){if(String(e.message).includes('UNIQUE'))throw new Error('Este jogo já está cadastrado no catálogo.');throw e}});
 handle('game:update',async(_e,input:any)=>{let id=Number(input?._id);if(!Number.isFinite(id)){if(String(input?._id||'').startsWith('local:')){const now=new Date().toISOString();const localFile=String(input.localFileName||String(input._id).slice(6));const title0=String(input.title||path.parse(localFile).name).trim()||path.parse(localFile).name;const r=database().prepare(`INSERT INTO games(title,console,icon,original_name,source,game_id,cover_installed,download_url,downloads_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(title0,String(input.console||'PS2'),input.icon||null,localFile,String(input.source||'local'),input.gameId||null,input.coverInstalled?1:0,null,'[]',now,now);id=Number(r.lastInsertRowid)}else throw new Error('ID do jogo inválido.');}const title=String(input.title||'').trim();if(!title)throw new Error('Informe o título.');const icon=String(input.icon||'').trim()||null;if(icon){const u=new URL(icon);if(!['http:','https:'].includes(u.protocol))throw new Error('URL da capa inválida.')}const normalized=(Array.isArray(input.downloads)?input.downloads:[]).filter((x:any)=>String(x?.url||'').trim()).map((x:any,i:number)=>{const u=new URL(String(x.url));if(!['http:','https:'].includes(u.protocol))throw new Error(`URL inválida na opção ${i+1}.`);return{name:String(x.name||`Opção ${i+1}`),url:u.toString(),region:String(x.region||''),format:String(x.format||''),size:String(x.size||''),source:String(x.source||'manual'),originalName:safeName(String(x.originalName||''))}});database().prepare(`UPDATE games SET title=?,console=?,icon=?,original_name=?,source=?,game_id=?,download_url=?,downloads_json=?,updated_at=? WHERE id=?`).run(title,String(input.console||'PS2'),icon,String(input.originalName||''),String(input.source||'manual'),String(input.gameId||'').trim().toUpperCase()||null,normalized[0]?.url||null,JSON.stringify(normalized),new Date().toISOString(),id);return rowToGame(database().prepare('SELECT * FROM games WHERE id=?').get(id))});
 handle('games:stats',async()=>({total:Number((database().prepare(`SELECT COUNT(*) AS n FROM games WHERE console='PS2'`).get() as any).n||0),downloaded:fs.readdirSync(dvdDir()).filter(x=>x.toLowerCase()!=='games.bin'&&/\.(iso|bin|zip|7z)$/i.test(x)).length}));
 handle('download:list',()=>Array.from(downloads.values()));
-handle('games:installed',async()=>{const rows=database().prepare(`SELECT * FROM games WHERE console='PS2'`).all() as any[],docs=rows.map(rowToGame),files=fs.readdirSync(dvdDir()).filter(x=>x.toLowerCase()!=='games.bin'&&/\.(iso|bin)$/i.test(x)),byName=new Map<string,any>();for(const g of docs){if(g.originalName)byName.set(safeName(String(g.originalName)).toLowerCase(),g);for(const o of downloadOptions(g))byName.set(fileNameForDownload(g,o).toLowerCase(),g)}const result=[];for(const fileName of files){const full=path.join(dvdDir(),fileName),g=byName.get(fileName.toLowerCase());let id=g?.gameId||null;if(!id){try{id=extractGameId(full)}catch{}}let coverInstalled=!!id&&fs.existsSync(path.join(artDir(),`${id}_COV.jpg`));if(g&&id&&(!coverInstalled||g.gameId!==id)){coverInstalled=(await installCover(g.icon,id))||coverInstalled;database().prepare('UPDATE games SET game_id=?,cover_installed=?,updated_at=? WHERE id=?').run(id,coverInstalled?1:0,new Date().toISOString(),Number(g._id))}result.push({...g,_id:g?g._id:`local:${fileName}`,title:g?.title||path.parse(fileName).name,console:'PS2',localFileName:fileName,downloaded:true,gameId:id,coverInstalled,localPath:full,size:fs.statSync(full).size})}return result.sort((a,b)=>String(a.title).localeCompare(String(b.title)))});
+handle('games:installed',async()=>{const rows=database().prepare(`SELECT * FROM games WHERE console='PS2'`).all() as any[],docs=rows.map(rowToGame),files=fs.readdirSync(dvdDir()).filter(x=>x.toLowerCase()!=='games.bin'&&/\.(iso|bin)$/i.test(x)),byName=new Map<string,any>();for(const g of docs){if(g.originalName)byName.set(safeName(String(g.originalName)).toLowerCase(),g);for(const o of downloadOptions(g))byName.set(fileNameForDownload(g,o).toLowerCase(),g)}const result=[];for(const fileName of files){const full=path.join(dvdDir(),fileName),g=byName.get(fileName.toLowerCase());let id=g?.gameId||null;if(!id){try{id=extractGameId(full)}catch{}}let coverInstalled=!!id&&fs.existsSync(path.join(artDir(),`${id}_COV.jpg`));if(g&&id&&(!coverInstalled||g.gameId!==id)){coverInstalled=(await installCover(g.icon,id))||coverInstalled;database().prepare('UPDATE games SET game_id=?,cover_installed=?,updated_at=? WHERE id=?').run(id,coverInstalled?1:0,new Date().toISOString(),Number(g._id))}result.push({...g,_id:g?g._id:`local:${fileName}`,title:g?.title||path.parse(fileName).name,console:'PS2',localFileName:fileName,downloaded:true,gameId:id,coverInstalled,localPath:full,ra:await compatibility.check(full),size:fs.statSync(full).size})}return result.sort((a,b)=>String(a.title).localeCompare(String(b.title)))});
 handle('covers:repair',async()=>{const installed:any[]=await (async()=>{const files=fs.readdirSync(dvdDir()).filter(x=>x.toLowerCase()!=='games.bin'&&/\.(iso|bin)$/i.test(x));return files})();let repaired=0,missingId=0,missingCover=0;const docs=(database().prepare(`SELECT * FROM games WHERE console='PS2'`).all() as any[]).map(rowToGame);const byName=new Map<string,any>();for(const g of docs){if(g.originalName)byName.set(safeName(String(g.originalName)).toLowerCase(),g);for(const o of downloadOptions(g))byName.set(fileNameForDownload(g,o).toLowerCase(),g)}for(const fileName of installed){const g=byName.get(String(fileName).toLowerCase());if(!g){missingCover++;continue}let id=g.gameId||null;if(!id){try{id=extractGameId(path.join(dvdDir(),fileName))}catch{}}if(!id){missingId++;continue}const ok=await installCover(g.icon,id);ok?repaired++:missingCover++;database().prepare('UPDATE games SET game_id=?,cover_installed=?,updated_at=? WHERE id=?').run(id,ok?1:0,new Date().toISOString(),Number(g._id))}return{repaired,missingId,missingCover,total:installed.length}});
 handle('download:start',async(event,g:any,choice:any=null)=>{const options=downloadOptions(g),selected=choice?.url?choice:options[0];if(!selected?.url)throw new Error('Jogo sem opção de download cadastrada');const url=new URL(selected.url);if(!['http:','https:'].includes(url.protocol))throw new Error('URL inválida');const key=gameKey(g),fn=fileNameForDownload(g,selected),save=path.join(dvdDir(),fn);if(fs.existsSync(save))return{success:true,alreadyDownloaded:true,gameKey:key,fileName:fn};const old=downloads.get(key);if(old&&['starting','progressing','processing'].includes(old.state))return old;const st:DownloadState={gameKey:key,fileName:fn,url:url.toString(),path:save,icon:g.icon||null,state:'starting',received:0,total:0,percent:0};downloads.set(key,st);event.sender.downloadURL(url.toString());broadcast('download:progress',st);return st});
-handle('game:delete',async(_e,g:any)=>{const key=gameKey(g),opts=downloadOptions(g),st=downloads.get(key);if(st&&['starting','progressing','processing'].includes(st.state))throw new Error('Aguarde o download terminar antes de excluir.');if(g.originalName){const p=path.join(dvdDir(),safeName(String(g.originalName)));if(fs.existsSync(p))fs.rmSync(p,{force:true})}for(const o of opts){const p=path.join(dvdDir(),fileNameForDownload(g,o));if(fs.existsSync(p))fs.rmSync(p,{force:true})}const id=g.gameId||st?.gameId||null;if(id)for(const suffix of ['_COV.jpg','_COV.png','_BG.jpg','_BG.png']){const p=path.join(artDir(),`${id}${suffix}`);if(fs.existsSync(p))fs.rmSync(p,{force:true})}downloads.delete(key);if(Number.isFinite(Number(key)))database().prepare('UPDATE games SET game_id=NULL,cover_installed=0,updated_at=? WHERE id=?').run(new Date().toISOString(),Number(key));return{success:true}});
+handle('game:delete',async(_e,g:any)=>{const key=gameKey(g),opts=downloadOptions(g),st=downloads.get(key);if(st&&['starting','progressing','processing'].includes(st.state))throw new Error('Aguarde o download terminar antes de excluir.');for(const name of [g.localFileName,g.originalName].filter(Boolean)){const p=path.join(dvdDir(),safeName(String(name)));if(fs.existsSync(p))fs.rmSync(p,{force:true})}for(const o of opts){const p=path.join(dvdDir(),fileNameForDownload(g,o));if(fs.existsSync(p))fs.rmSync(p,{force:true})}const id=g.gameId||st?.gameId||null;if(id)for(const suffix of ['_COV.jpg','_COV.png','_BG.jpg','_BG.png']){const p=path.join(artDir(),`${id}${suffix}`);if(fs.existsSync(p))fs.rmSync(p,{force:true})}downloads.delete(key);if(Number.isSafeInteger(Number(key))&&Number(key)>0)deleteCatalogGame(database(),Number(key));return{success:true}});
 handle('opl:status',()=>oplStatus());
 
 function configureDownloads(){session.defaultSession.on('will-download',(event,item)=>{const url=item.getURL(),chain=item.getURLChain?.()||[];let current=Array.from(downloads.values()).find(d=>['starting','progressing'].includes(d.state)&&(d.url===url||chain.includes(d.url)));if(!current){const pending=Array.from(downloads.values()).filter(d=>['starting','progressing'].includes(d.state));if(pending.length===1)current=pending[0]}if(!current){event.preventDefault();return}const key=current.gameKey;fs.mkdirSync(path.dirname(current.path),{recursive:true});item.setSavePath(current.path);const pub=()=>{const total=item.getTotalBytes(),received=item.getReceivedBytes();const next:DownloadState={...current!,state:'progressing',received,total,percent:total>0?Math.round(received/total*100):0};current=next;downloads.set(key,next);broadcast('download:progress',next)};item.on('updated',(_x,state)=>{if(state==='progressing')pub()});item.once('done',(_x,state)=>{const old=downloads.get(key)!;if(state==='completed'){const processing:DownloadState={...old,state:'processing',received:item.getReceivedBytes(),total:item.getTotalBytes(),percent:100};downloads.set(key,processing);broadcast('download:progress',processing);void finishGame(processing)}else{const failed:DownloadState={...old,state:state as DownloadState['state'],error:`Download ${state}`};downloads.set(key,failed);broadcast('download:error',failed)}})})}
@@ -378,14 +441,21 @@ function startNowPlayingMonitor() {
     if (checking || storageChanging) return;
     checking = true;
     try {
-      const detected = await detectActiveGame();
+      const smb = await detectActiveGame();
+      const engine = xera.status();
+      const telemetry = engine.connected && engine.game
+        ? {...await resolveCatalogGame(null, '', engine.game), active:true, detectedAt:new Date().toISOString(), fileName:'', filePath:''}
+        : null;
+      const detected = playSession.resolve(smb, telemetry);
       nowPlayingState = detected;
+      discord.updateSMB(detected?.title||null,detected?.icon);
       if (mainWindowRef && !mainWindowRef.isDestroyed()) {
         mainWindowRef.webContents.send('now-playing:changed', nowPlayingState);
       }
     } catch (e) {
       console.error('[now-playing]', e);
       nowPlayingState = null;
+      discord.updateSMB(null);
       broadcast('now-playing:changed', null);
     } finally {
       checking = false;
@@ -520,7 +590,7 @@ async function createWindow(){
     splashWindow = null;
   }
 }
-app.whenReady().then(async()=>{database();ensureRuntime();configureDownloads();await createWindow();try{await startOpl()}catch(e){broadcast('opl:error',{message:e instanceof Error?e.message:String(e)})}setInterval(()=>{void publishOpl()},1500).unref()}).catch(e=>{console.error(e);app.quit()});
+app.whenReady().then(async()=>{database();ensureRuntime();if(achievements.status().user)void xera.start().catch(e=>broadcast('xera:status',{running:false,connected:false,user:'',game:'',error:e instanceof Error?e.message:String(e)}));discord.start();void discordAuth.restore().then(()=>{discord.setAccount(discordAuth.user()?.id||null);discord.configure({enabled:discord.status().enabled,clientId:DISCORD_CLIENT_ID});broadcast('discord:status',discordStatus())}).catch(()=>{discord.setAccount(null);broadcast('discord:status',discordStatus())});configureDownloads();await createWindow();try{await startOpl()}catch(e){broadcast('opl:error',{message:e instanceof Error?e.message:String(e)})}setInterval(()=>{void publishOpl()},1500).unref()}).catch(e=>{console.error(e);app.quit()});
 app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)void createWindow()});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit()});
-app.on('before-quit',(event)=>{if(storageChanging){event.preventDefault();return;}if(nowPlayingTimer)clearInterval(nowPlayingTimer);oplActivity.stop();if(oplProcess&&!oplProcess.killed)oplProcess.kill();try{db?.close()}catch{}});
+app.on('before-quit',(event)=>{if(storageChanging){event.preventDefault();return;}discordAuth.cancel();discord.stop();if(nowPlayingTimer)clearInterval(nowPlayingTimer);oplActivity.stop();if(oplProcess&&!oplProcess.killed)oplProcess.kill();try{db?.close()}catch{}});

@@ -28,3 +28,10 @@ retroachievements-login.enc
 retroachievements-login.enc.tmp-*
 cache/
 .release-tools/
+xerabora.log
+vendor/xerabora/*.cfg
+vendor/xerabora/*.pdb
+achievement-engine/
+discord-presence.json
+discord-login.enc
+discord-login.enc.tmp

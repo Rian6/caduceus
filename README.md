@@ -4,6 +4,22 @@
 
 # Caduceus
 
+### Atividade no Discord
+
+Em **Configurações → Discord**, clique em **Conectar Discord** e autorize sua conta no navegador. A atividade é ativada após a autorização. O usuário não precisa criar aplicações ou informar IDs e tokens. A sessão OAuth2 com PKCE é salva com proteção do Windows e restaurada ao abrir o app.
+
+Configuração única para o mantenedor: na aplicação `1554196376756293712` do [Discord Developer Portal](https://discord.com/developers/applications), habilite **Public Client** em OAuth2 e registre exatamente `http://127.0.0.1:53682/discord/callback` em Redirects. O cliente usa o escopo `identify`, sem Client Secret no executável. O nome exibido na atividade vem da aplicação cadastrada. Sem essas configurações no portal, o login será recusado pelo Discord.
+
+Com o Discord desktop aberto e o compartilhamento de atividades permitido, o jogo detectado aparece com **PlayStation 2 · Console real**. Novas conquistas recebidas do PS2 ganham destaque por aproximadamente 30 segundos. A atividade é removida ao terminar a sessão, desativar a integração ou fechar o Caduceus. A conexão usa [RPC local do Discord](https://docs.discord.com/developers/topics/rpc), com reconexão automática; conquistas históricas não são publicadas como atividade ao vivo.
+
+### Compatibilidade de ISOs com RetroAchievements
+
+Em **Configurações → Biblioteca**, use **Verificar compatibilidade** após conectar a conta RA. O selo com troféu mostra quantas conquistas ativas existem para o hash da imagem instalada. O filtro **Com conquistas**, ao lado da busca, considera toda a coleção, antes da paginação. A identificação também aparece nos detalhes, na importação de ISO, no jogo atual e nos downloads concluídos.
+
+A validação lê `SYSTEM.CNF` e calcula o MD5 do nome e conteúdo do executável `BOOT2`, conforme o [algoritmo oficial de PS2](https://docs.retroachievements.org/developer-docs/game-identification.html). Não usa o MD5 da ISO inteira, nem presume compatibilidade pelo título ou serial. O [catálogo de hashes da API](https://api-docs.retroachievements.org/v1/get-game-list.html) é consultado com `i=21&h=1&f=1` e armazenado por 24 horas no cache local, sem credenciais. Offline, o último catálogo disponível continua utilizável.
+
+Arquivos ainda não baixados ficam como **ISO não verificada**. BIN, ZSO e outros formatos não são validados nesta implementação. Falhas de leitura ou de conexão não são apresentadas como incompatibilidade. Substituir uma ISO invalida seu hash em memória. Um hash reconhecido confirma o conjunto de conquistas, mas não elimina as limitações experimentais de telemetria, softcore e SMB do OPL-RA.
+
 Gerenciador de jogos **PlayStation 2 para Windows**, com biblioteca local, downloads, importação de ISOs e servidor integrado para jogar pela rede usando o **Open PS2 Loader (OPL)**.
 
 **Electron · React · TypeScript · Vite · SQLite**
@@ -170,9 +186,21 @@ A aba **Conquistas** usa a API do RetroAchievements para consultar o progresso d
 - Filtros de conquistas bloqueadas, desbloqueadas e hardcore.
 - Cache de consultas por um minuto.
 
-Informe seu usuário e sua **Web API Key** na própria aba. O login é salvo com criptografia do Windows na pasta de dados do aplicativo (`cache/retroachievements-login.enc`) e restaurado nas próximas aberturas. **Desconectar** remove o arquivo salvo. O cache e seus arquivos temporários estão no `.gitignore`. Não use a senha da conta nesse campo.
+Entre uma vez na própria aba, informando **usuário, senha e Web API Key**. A senha autentica os desbloqueios e não é salva. A chave permite consultar a biblioteca. Token e chave são protegidos pela criptografia do Windows na pasta de dados do aplicativo e restaurados nas próximas visitas. **Desconectar** encerra as duas conexões e remove os dados salvos. Contas antigas conectadas apenas por chave precisam completar esse novo formulário uma vez.
 
-A integração é **somente de leitura**: não desbloqueia conquistas nem envia partidas do OPL ao RetroAchievements.
+A consulta via Web API é somente de leitura. A integração local experimental abaixo pode registrar conquistas usando o componente xeRAbora.
+
+### Conquistas ao vivo — integração local experimental
+
+O Caduceus incorpora **xeRAbora v0.1.0-alpha.12** e `OPL-RA.ELF`. O OPLServer continua independente e permanece responsável por servir os jogos pela rede.
+
+O Caduceus possui sua própria interface unificada: conta, estado do console, jogo atual e biblioteca na mesma tela. O componente adaptado inicia em segundo plano, sem abrir navegador. Em **Som e configuração do PS2**, ajuste o áudio, pause ou retome a conexão e salve o ELF para transferir ao console. No OPL-RA, execute `RA: test PC connection` e `RA: check game support` antes de jogar.
+
+Eventos recebidos geram notificações no Caduceus e um som original, com volume e opção de silenciar. O componente usa UDP 18194 para o console e TCP 18195 para a interface local. Fechar o aplicativo encerra o processo iniciado por ele; parar o componente não apaga o login gerenciado pelo xeRAbora.
+
+**Limitação conhecida do fork:** jogos com conquistas carregados por SMB podem parar de carregar. Esta integração não corrige esse problema no PS2. Para testes de conquistas, use USB ou disco compatível; para jogar pela rede, o OPL normal continua funcionando como antes. Apenas softcore. Validação de ponta a ponta exige um console físico.
+
+Código, versão fixa, hashes e licenças: [componentes de terceiros](vendor/xerabora/README.md). Créditos: [hacan359/xeRAbora](https://github.com/hacan359/xerabora), [OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra) e [rcheevos](https://github.com/RetroAchievements/rcheevos).
 
 ## Organização do projeto
 

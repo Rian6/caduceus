@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const {SSEDecoder,UnlockTracker}=require('../dist-electron/xerabora.js');
+const d=new SSEDecoder();
+assert.deepEqual(d.push('data: {"unlocks":'),[]);
+assert.deepEqual(d.push('[]}\r\n\r\ndata: {"delta":1}\n\n'),[{unlocks:[]},{delta:1}]);
+assert.deepEqual(d.push(': keepalive\n\ndata: broken\n\n'),[]);
+const tracker=new UnlockTracker();
+const state=unlocks=>({login:{user:'test'},game:{title:'Demo'},unlocks});
+assert.deepEqual(tracker.consume(state([{id:1,title:'Old',ago:0}])),[],'initial snapshot is not a fresh unlock');
+assert.equal(tracker.consume(state([{id:2,title:'New',ago:1,points:5},{id:1,ago:5}]))[0].title,'New');
+assert.deepEqual(tracker.consume(state([{id:2,ago:2}])),[],'deduplicate');
+assert.deepEqual(tracker.consume({delta:1}),[]);
+assert.deepEqual(tracker.consume(state([{id:3,ago:60}])),[],'do not replay stale events');
+assert.deepEqual(tracker.consume(state([{id:-1,ago:0}])),[]);
+assert.throws(()=>new SSEDecoder().push('a'.repeat(1024*1024+1)));
+console.log('PASS: fragmented SSE, CRLF, invalid data, initial history, duplicates, stale events and size limit.');

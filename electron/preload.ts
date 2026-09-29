@@ -1,8 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 const on=(channel:string,cb:(d:any)=>void)=>{const h=(_e:any,d:any)=>cb(d);ipcRenderer.on(channel,h);return()=>ipcRenderer.removeListener(channel,h)};
 contextBridge.exposeInMainWorld('games',{
+ discordStatus:()=>ipcRenderer.invoke('discord:get'),discordConfigure:(enabled:boolean)=>ipcRenderer.invoke('discord:set',enabled),discordConnect:()=>ipcRenderer.invoke('discord:connect'),discordDisconnect:()=>ipcRenderer.invoke('discord:disconnect'),onDiscordStatus:(cb:(data:any)=>void)=>on('discord:status',cb),
+ xeraStatus:()=>ipcRenderer.invoke('xera:status'),xeraStart:()=>ipcRenderer.invoke('xera:start'),xeraStop:()=>ipcRenderer.invoke('xera:stop'),xeraElf:()=>ipcRenderer.invoke('xera:elf'),
+ onXeraStatus:(cb:(data:any)=>void)=>on('xera:status',cb),onXeraUnlock:(cb:(data:any)=>void)=>on('xera:unlock',cb),
  raStatus:()=>ipcRenderer.invoke('ra:status'),
- raConnect:(user:string,key:string)=>ipcRenderer.invoke('ra:connect',user,key),
+ raCompatibilitySync:()=>ipcRenderer.invoke('ra:compatibility-sync'),
+ raConnect:(user:string,key:string,password:string)=>ipcRenderer.invoke('ra:connect',user,key,password),
  raDisconnect:()=>ipcRenderer.invoke('ra:disconnect'),
  raGames:(page:number)=>ipcRenderer.invoke('ra:games',page),
  raGame:(id:number)=>ipcRenderer.invoke('ra:game',id),

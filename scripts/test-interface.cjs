@@ -23,8 +23,19 @@ function fixtureAPI(games) {
   const networkStatus = () => ({online:true, ip:'192.168.1.10', port:networkPort, folder:'C:\\Caduceus\\PS2', shareName:'PS2', addresses:['192.168.1.10','192.168.2.10']});
   let storage = {directory:'C:\\Caduceus\\oplserver', isoDirectory:'C:\\Caduceus\\oplserver\\PS2\\DVD',exists:true,bytes:4200000000,isoCount:2,busy:false};
   window.games = {
+    discordStatus:async()=>({enabled:false,user:null,configured:true,connected:false,message:'Conecte sua conta Discord',game:'',achievement:''}),
+    discordConnect:async()=>{window.__calls.push('discord:connect');return {enabled:true,user:{id:'123456789012345678',name:'Tester'},configured:true,connected:true,message:'Conectado',game:'',achievement:''}},
+    discordDisconnect:async()=>({enabled:false,user:null,configured:true,connected:false,message:'Desativado',game:'',achievement:''}),
+    discordConfigure:async enabled=>{window.__calls.push('discord:'+enabled);return {enabled,user:{id:'123456789012345678',name:'Tester'},configured:true,connected:true,message:enabled?'Conectando':'Desativado',game:'',achievement:''}},
+    onDiscordStatus:subscribe('discord'),
+    xeraStatus:async()=>({running:false,connected:false,user:'',game:'',error:''}),
+    onXeraStatus:subscribe('xeraStatus'),onXeraUnlock:subscribe('xeraUnlock'),
+    xeraStart:async()=>{window.__emit('xeraStatus',{running:true,connected:true,user:'Tester',game:'Demo',error:''})},
+    xeraStop:async()=>{window.__emit('xeraStatus',{running:false,connected:false,user:'',game:'',error:''})},
+    xeraOpen:async()=>{},xeraElf:async()=>true,
     raStatus:async()=>({user:null}),
-    raConnect:async()=>({user:'Tester'}),
+    raCompatibilitySync:async()=>true,
+    raConnect:async(user,key,password)=>{if(!password)throw new Error('Missing password');window.__emit('xeraStatus',{running:true,connected:true,user:'Tester',game:'Demo',error:''});return {user:'Tester'}},
     raDisconnect:async()=>({user:null}),
     raGames:async()=>({total:1,games:[{id:1,title:'Achievement Test',console:'PlayStation 2',image:null,total:2,earned:1,hardcore:1}]}),
     raGame:async()=>({title:'Achievement Test',achievements:[{id:1,title:'First trophy',description:'Complete the first stage.',points:5,image:null,earned:true,hardcore:true,date:'2026-01-01'},{id:2,title:'Second trophy',description:'Complete the second stage.',points:10,image:null,earned:false,hardcore:false,date:''}]}),
@@ -39,8 +50,8 @@ function fixtureAPI(games) {
       return {cancelled:false,directory:input.directory};
     },
     onStorageProgress:subscribe('storage'),
-    list: async ({search, page, limit}) => {
-      const filtered = games.filter(game => game.title.toLowerCase().includes(search.toLowerCase()));
+    list: async ({search, page, limit,raCompatible}) => {
+      const filtered = games.filter(game => game.title.toLowerCase().includes(search.toLowerCase())&&(!raCompatible||game.ra?.status==='compatible'));
       return {games:filtered.slice(page*limit, (page+1)*limit), total:filtered.length, page, pages:Math.ceil(filtered.length/limit)};
     },
     installed: async () => games.filter(game => game.downloaded),
@@ -50,7 +61,7 @@ function fixtureAPI(games) {
     nowPlaying: async () => null,
     create: async data => { const game = {...data, _id:String(games.length+1), console:'PS2'}; games.push(game); window.__calls.push('create'); return game; },
     update: async data => {window.__calls.push('update'); Object.assign(games.find(game => game._id === data._id), data); return data;},
-    delete: async game => {window.__calls.push('delete'); games.find(item => item._id === game._id).downloaded = false;},
+    delete: async game => {window.__calls.push('delete'); const index=games.findIndex(item => item._id === game._id);if(index>=0)games.splice(index,1);},
     download: async game => {
       window.__calls.push('download');
       const state = {gameKey:game._id, fileName:game.title+'.iso', icon:game.icon, state:'progressing', percent:42, received:420000000, total:1000000000};
@@ -79,6 +90,7 @@ app.whenReady().then(async () => {
       downloaded:index<2, coverInstalled:index<2, downloadUrl:'https://example.invalid/game.iso'};
   });
   database.close();
+  fixtures[0].ra={status:'compatible',count:12,id:2772,title:'RA fixture',hash:'fe8b1b6c64c24e7eaaef6de8af1aeb9e',checkedAt:Date.now()};
   assert(fixtures.length >= 3, 'Need local cover fixtures');
   fixtures.push({_id:'6', title:'Um clássico sem capa', console:'PS2', icon:'data:image/png;base64,broken', downloads:[]});
   const index = fs.readFileSync(path.join(root,'dist/index.html'),'utf8').replace('<head>', `<head><script>(${fixtureAPI.toString()})(${JSON.stringify(fixtures)})</script>`);
@@ -114,6 +126,14 @@ app.whenReady().then(async () => {
   assert(await js('document.body.textContent.includes("Consulte e gerencie seus jogos de PlayStation 2.")'), 'Portuguese accents must survive the build');
   assert(await js('!!document.querySelector(".coverFallback")'), 'broken cover gets a fallback');
   await screenshot('interface-library');
+  await click('.collectionFilters button');await delay(200);
+  assert.equal(await js('document.querySelectorAll(".gameCard").length'),1);
+  assert(await js('document.querySelector(".gameCard .raCompatibilityBadge").textContent.includes("12")'));
+  await click('.gameCoverButton');await delay(80);
+  assert(await js('!!document.querySelector(".raCompatibilityDetail.verified")'));
+  await js('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}))');await delay(80);
+  await screenshot('interface-ra-compatible');
+  await click('.collectionFilters button');await delay(200);
   await js(`window.__emit('playing', {...window.__games[0], id:1, fileName:'game.iso', active:true})`);
   await delay(100);
   assert(await js('!!document.querySelector(".feature.isPlaying .featuredCase img")'));
@@ -142,6 +162,17 @@ app.whenReady().then(async () => {
   assert(await js('window.__calls.includes("create")'));
   await click('.addGameNav:last-of-type'); await delay(150);
   assert(await js('!!document.querySelector(".settingsPanel")'));
+  await click('.discordAccountCard button');await delay(100);
+  assert(await js('window.__calls.includes("discord:connect")'));
+  assert(await js('document.querySelector(".discordAccountInfo").textContent.includes("Tester")'));
+  await click('.discordToggle input');await delay(100);
+  assert(await js('window.__calls.includes("discord:false")'));
+  assert(await js('!!document.querySelector(".discordLogo")'));
+  assert.equal(await js('document.querySelectorAll(".librarySettingRow").length'),2);
+  await js('document.querySelectorAll(".librarySettingRow button")[0].click()');await delay(150);
+  assert(await js('document.querySelector(".librarySettings").textContent.includes("capas reparadas")'));
+  await js('document.querySelectorAll(".librarySettingRow button")[1].click()');await delay(150);
+  assert(await js('document.querySelector(".librarySettings").textContent.includes("Compatibilidade atualizada")'));
   assert(await js('document.querySelector(".oplConnectionDetails").textContent.includes("192.168.1.10")'));
   await setInput('.portForm input','65536');
   assert(await js('document.querySelector(".portForm button").disabled'));
@@ -181,9 +212,23 @@ app.whenReady().then(async () => {
     assert(await js('document.documentElement.scrollWidth <= innerWidth'), `horizontal overflow at ${width}`);
   }
   await screenshot('interface-compact');
+  await js('localStorage.removeItem("caduceus-achievements-guide-v1")');
   await click('.sidebar nav button:last-child');await delay(150);
+  assert(await js('!!document.querySelector(".achievementGuide")'));
+  await click('.achievementGuide .primary');await delay(50);
+  await click('.achievementGuide .primary');await delay(50);
+  assert(await js('document.querySelector(".achievementGuide").textContent.includes("SMB")'));
+  await click('.achievementGuide .primary');await delay(50);
+  assert.equal(await js('localStorage.getItem("caduceus-achievements-guide-v1")'),'seen');
+  await click('.sidebar nav button:first-child');await delay(50);
+  await click('.sidebar nav button:last-child');await delay(100);
+  assert.equal(await js('!!document.querySelector(".achievementGuide")'),false);
+  await click('.achievementGuideAction button');await delay(50);
+  assert(await js('!!document.querySelector(".achievementGuide")'));
+  await click('.achievementGuide .textButton');await delay(50);
   await setInput('.raConnect input[autocomplete="username"]','Tester');
-  await setInput('.raConnect input[type="password"]','test-key');
+  await setInput('.raConnect input[name="raPassword"]','test-password');
+  await setInput('.raConnect input[name="raKey"]','test-key');
   await click('.raConnect button');await delay(150);
   assert(await js('!!document.querySelector(".raGame")'));
   await click('.raGame');await delay(150);
@@ -191,6 +236,12 @@ app.whenReady().then(async () => {
   await js('document.querySelector(".raToolbar select").value="locked";document.querySelector(".raToolbar select").dispatchEvent(new Event("change",{bubbles:true}))');await delay(100);
   assert.equal(await js('document.querySelectorAll(".raBadge").length'),1);
   await screenshot('interface-achievements');
+  await js('document.querySelector(".achievementOptions").open=true');await delay(100);
+  assert(await js('document.querySelector(".achievementSession").textContent.includes("Recebendo telemetria")'));
+  await js('localStorage.setItem("achievement-sound","off");window.__emit("xeraUnlock",{id:7,title:"Integration trophy",points:5,game:"Demo"})');await delay(150);
+  assert(await js('document.querySelector(".achievementToast").textContent.includes("Integration trophy")'));
+  await click('.achievementOptions .buttonRow button:first-child');await delay(100);
+  assert(await js('document.querySelector(".achievementSession").textContent.includes("Pausada")'));
   assert.deepEqual(await js('window.__errors'), []);
   console.log('PASS: library, cover fallback, playing/idle transitions, details, edit/save, download, create, storage selection/move/fresh confirmation, search, compact layouts; no renderer errors.');
   window.destroy(); server.close(); app.exit(0);

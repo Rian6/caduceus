@@ -4,6 +4,8 @@ import {bytes, errorText} from './ui';
 import {NetworkSettingsPanel} from './NetworkSettings';
 import {CatalogSettings} from './CatalogSettings';
 import {AppearanceSettings} from './AppearanceSettings';
+import {LibrarySettings} from './LibrarySettings';
+import {DiscordSettings} from './DiscordSettings';
 
 const phases:Record<string,string> = {stopping:'Parando o servidor SMB',copying:'Copiando arquivos…',verifying:'Verificando os arquivos copiados…',starting:'Iniciando o servidor no novo local…',removing:'Removendo a pasta antiga…',done:'Alteração concluída.'};
 
@@ -55,7 +57,7 @@ export function Settings({onChanged, onBusy, locked}: {onChanged:()=>Promise<voi
     {error&&<div className="formMsg error" role="alert">{error}{!settings&&<button onClick={()=>void read()}><RefreshCw/>Tentar novamente</button>}</div>}
     {message&&<p className="formMsg ok" role="status"><CheckCircle2/>{message}</p>}
     {warning&&<p className="formMsg error" role="alert">{warning}</p>}
-  </fieldset><CatalogSettings locked={locked} onBusy={onBusy} onChanged={onChanged}/><AppearanceSettings/>
+  </fieldset><LibrarySettings locked={locked} onBusy={onBusy} onChanged={onChanged}/><DiscordSettings locked={locked}/><CatalogSettings locked={locked} onBusy={onBusy} onChanged={onChanged}/><AppearanceSettings/>
     <section className="settingsPanel tutorialSettings"><div className="settingsTitle"><span className="statIcon"><FolderOpen/></span><div><h2>Primeiros passos</h2><p>Aprenda a conectar o PS2, configurar o OPL e usar sua biblioteca.</p></div></div><button onClick={()=>window.dispatchEvent(new Event('open-tutorial'))}>Abrir tutorial<ArrowRight/></button></section>
   </>;
 }

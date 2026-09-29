@@ -41,6 +41,7 @@
       "package.json"
     ],
     "extraResources": [
+      {"from":"vendor/xerabora","to":"xerabora","filter":["xerabora-caduceus.exe","caduceus.patch","OPL-RA.ELF","LICENSE-*.txt","SHA256SUMS","CADUCEUS-SHA256SUMS","README.md"]},
       {
         "from": "oplserver",
         "to": "oplserver",

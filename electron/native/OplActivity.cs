@@ -11,6 +11,18 @@ using System.Text;
 // Read-only inspection of OPLServer's connections and open disk file handles.
 public static class OplActivity
 {
+    // TCP can remain ESTABLISHED after a console loses power. Confirm that
+    // the peer still responds, allowing two missed probes for packet loss.
+    public sealed class PeerLiveness
+    {
+        private int failures;
+        public bool Update(bool responds)
+        {
+            failures = responds ? 0 : Math.Min(failures + 1, 3);
+            return failures < 3;
+        }
+    }
+    static readonly Dictionary<string, PeerLiveness> peers = new Dictionary<string, PeerLiveness>();
     [DllImport("iphlpapi.dll")]
     static extern uint GetExtendedTcpTable(IntPtr table, ref int size, bool order, int family, int tableClass, uint reserved);
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -53,6 +65,7 @@ public static class OplActivity
                 if (result == 122) continue;
                 if (result != 0) throw new Win32Exception((int)result);
                 var pids = new HashSet<int>();
+                var probes = new Dictionary<string, bool>();
                 int count = Marshal.ReadInt32(buffer);
                 for (int i = 0; i < count; i++)
                 {
@@ -61,8 +74,24 @@ public static class OplActivity
                     var remote = new IPAddress(BitConverter.GetBytes(Marshal.ReadInt32(row, 12)));
                     if (Marshal.ReadInt32(row) == 5 && localPort == port &&
                         !IPAddress.IsLoopback(remote) && !ownAddresses.Contains(remote.ToString()))
-                        pids.Add(Marshal.ReadInt32(row, 20));
+                    {
+                        string address = remote.ToString();
+                        bool alive;
+                        if (!probes.TryGetValue(address, out alive))
+                        {
+                            PeerLiveness peer;
+                            if (!peers.TryGetValue(address, out peer)) peers[address] = peer = new PeerLiveness();
+                            bool responds = false;
+                            try { using (var ping = new Ping()) responds = ping.Send(remote, 400).Status == IPStatus.Success; }
+                            catch (PingException) { }
+                            alive = peer.Update(responds);
+                            probes[address] = alive;
+                        }
+                        if (alive) pids.Add(Marshal.ReadInt32(row, 20));
+                    }
                 }
+                foreach (string address in new List<string>(peers.Keys))
+                    if (!probes.ContainsKey(address)) peers.Remove(address);
                 return pids;
             }
             finally { Marshal.FreeHGlobal(buffer); }
@@ -105,7 +134,8 @@ public static class OplActivity
                             if (full.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) full = @"\\" + full.Substring(8);
                             else if (full.StartsWith(@"\\?\")) full = full.Substring(4);
                             string ext = Path.GetExtension(full).ToLowerInvariant();
-                            if (ext == ".iso" || ext == ".zso" || ext == ".bin") paths.Add(full);
+                            if (!String.Equals(Path.GetFileName(full), "games.bin", StringComparison.OrdinalIgnoreCase) &&
+                                (ext == ".iso" || ext == ".zso" || ext == ".bin")) paths.Add(full);
                         }
                         finally { CloseHandle(handle); }
                     }

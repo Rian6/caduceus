@@ -4,6 +4,7 @@ export class RetroAchievements {
   private credentials:{user:string;key:string}|null=null;
   private cache=new Map<string,{at:number;data:any}>();
   private generation=0;
+  invalidate(){this.cache.clear()}
   private restored=false;
   constructor(private request:typeof fetch=fetch,private store?:LoginStore) {}
   private restore(){if(!this.restored){this.credentials=this.store?.load()||null;this.restored=true}}
@@ -24,12 +25,14 @@ export class RetroAchievements {
     if(!data||data.Error||data.Success===false)throw new Error('Não foi possível consultar os dados. Confira o usuário e a Web API Key.');
     return data;
   }
-  async connect(user:unknown,key:unknown){
+  async connect(user:unknown,key:unknown,authenticate?:()=>Promise<void>){
     if(typeof user!=='string'||!user.trim()||user.length>100||typeof key!=='string'||!key.trim()||key.length>256)throw new Error('Informe o usuário e a Web API Key do RetroAchievements.');
     const version=++this.generation;
     const credentials={user:user.trim(),key:key.trim()};
     const profile=await this.get('API_GetUserProfile.php',{},credentials);
     if(typeof profile.User!=='string')throw new Error('Usuário não encontrado.');
+    if(version!==this.generation)throw new Error('Conexão cancelada.');
+    await authenticate?.();
     if(version!==this.generation)throw new Error('Conexão cancelada.');
     const login={...credentials,user:profile.User};
     this.store?.save(login);
@@ -50,6 +53,12 @@ export class RetroAchievements {
     const data=await this.cached('games:'+page,'API_GetUserCompletionProgress.php',{o:String(page*100),c:'100'});
     if(!Array.isArray(data.Results))throw new Error('Lista de jogos inválida.');
     return {total:Number(data.Total)||0,games:data.Results.map((g:any)=>({id:Number(g.GameID),title:String(g.Title||''),console:String(g.ConsoleName||''),image:raImage(g.ImageIcon),total:Number(g.MaxPossible)||0,earned:Number(g.NumAwarded)||0,hardcore:Number(g.NumAwardedHardcore)||0}))};
+  }
+  async compatibilityIndex(){
+    this.restore();
+    const data=await this.get('API_GetGameList.php',{i:'21',h:'1',f:'1'});
+    if(!Array.isArray(data)||data.some((g:any)=>!Number.isSafeInteger(Number(g.ID))||!Array.isArray(g.Hashes)||!Number.isFinite(Number(g.NumAchievements))))throw new Error('Catálogo de hashes inválido. Tente novamente.');
+    return data.map((g:any)=>({id:Number(g.ID),title:String(g.Title||''),image:raImage(g.ImageIcon),count:Number(g.NumAchievements),hashes:g.Hashes.filter((h:unknown)=>typeof h==='string'&&/^[a-f0-9]{32}$/i.test(h)).map((h:string)=>h.toLowerCase())}));
   }
   async game(id:unknown){
     if(typeof id!=='number'||!Number.isInteger(id)||id<=0)throw new Error('Jogo inválido.');

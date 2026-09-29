@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {Disc3,Loader2,FileUp,Plus,Trash2,CheckCircle2} from 'lucide-react';
 import {Cover,Modal,bytes,errorText} from './ui';
+import {RADetails} from './RACompatibility';
 
 const blankForm = {title: '', icon: '', downloadUrl: '', originalName: ''};
 
@@ -45,6 +46,7 @@ export function CreateGame({onSaved}: {onSaved: () => Promise<void>}) {
       </fieldset>
       <div className="formSectionTitle"><span className="stepNumber">02</span><div><h2>Importar da sua máquina</h2><p>Selecione um arquivo ISO local.</p></div></div>
       <div className={`isoDrop ${iso ? 'hasFile' : ''}`}>
+        {iso&&<RADetails value={iso.ra}/>}
         <div className="isoDropIcon"><Disc3/></div><b>{iso?.fileName || 'Nenhum arquivo selecionado'}</b>
         <p>{iso ? bytes(iso.size) : 'Selecione uma ISO. O arquivo original será preservado.'}</p>
         <div className="buttonRow"><button type="button" disabled={busy || !!created} onClick={async () => {

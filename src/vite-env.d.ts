@@ -1,13 +1,20 @@
 /// <reference types="vite/client" />
-type DownloadState={gameKey:string;fileName:string;url:string;path:string;icon?:string|null;state:string;received:number;total:number;percent:number;gameId?:string|null;coverInstalled?:boolean;error?:string};
+type DownloadState={ra?:RACompatible;gameKey:string;fileName:string;url:string;path:string;icon?:string|null;state:string;received:number;total:number;percent:number;gameId?:string|null;coverInstalled?:boolean;error?:string};
 type DownloadOption={name?:string;url:string;region?:string;format?:string;size?:string;source?:string;originalName?:string};
-type Game={_id:string;title:string;console:string;icon?:string|null;originalName?:string|null;downloadUrl?:string|null;downloads?:DownloadOption[];source?:string|null;gameId?:string|null;coverInstalled?:boolean;downloaded?:boolean;localFileName?:string;downloadState?:DownloadState|null};
+type Game={ra?:RACompatible;_id:string;title:string;console:string;icon?:string|null;originalName?:string|null;downloadUrl?:string|null;downloads?:DownloadOption[];source?:string|null;gameId?:string|null;coverInstalled?:boolean;downloaded?:boolean;localFileName?:string;downloadState?:DownloadState|null};
 type OplStatus={online:boolean;ip:string;port:number;folder:string;shareName:string};
 type NowPlaying={id?:number;title:string;gameId?:string|null;icon?:string|null;fileName:string;filePath?:string;active?:boolean};
 interface Window { games: GamesAPI }
 interface GamesAPI {
+ discordStatus:()=>Promise<DiscordStatus>;
+ discordConnect:()=>Promise<DiscordStatus>;discordDisconnect:()=>Promise<DiscordStatus>;
+ discordConfigure:(enabled:boolean)=>Promise<DiscordStatus>;
+ onDiscordStatus:(cb:(status:DiscordStatus)=>void)=>()=>void;
+ raCompatibilitySync:()=>Promise<boolean>;
+ xeraStatus:()=>Promise<XeraStatus>;xeraStart:()=>Promise<XeraStatus>;xeraStop:()=>Promise<XeraStatus>;xeraElf:()=>Promise<boolean>;
+ onXeraStatus:(cb:(data:XeraStatus)=>void)=>()=>void;onXeraUnlock:(cb:(data:XeraUnlock)=>void)=>()=>void;
  raStatus:()=>Promise<{user:string|null}>;
- raConnect:(user:string,key:string)=>Promise<{user:string|null}>;
+ raConnect:(user:string,key:string,password:string)=>Promise<{user:string|null}>;
  raDisconnect:()=>Promise<{user:string|null}>;
  raGames:(page:number)=>Promise<{total:number;games:RAGame[]}>;
  raGame:(id:number)=>Promise<{title:string;achievements:RAAchievement[]}>;
@@ -22,9 +29,15 @@ interface GamesAPI {
  nowPlaying:()=>Promise<NowPlaying|null>;
  onNowPlaying:(cb:(game:NowPlaying|null)=>void)=>()=>void;
 }
+type XeraStatus={running:boolean;connected:boolean;user:string;game:string;error:string};
+type XeraUnlock={id:number;title:string;points:number;game:string};
 type RAGame={id:number;title:string;console:string;image:string|null;total:number;earned:number;hardcore:number};
 type RAAchievement={id:number;title:string;description:string;points:number;image:string|null;earned:boolean;hardcore:boolean;date:string};
 type StorageSettings={directory:string;isoDirectory:string;exists:boolean;bytes:number;isoCount:number;busy:boolean};
 type NetworkSettings=OplStatus & {addresses:string[]};
 type StorageProgress={phase:string;received:number;total:number;file?:string};
-interface GamesAPI{list:(args:any)=>Promise<{games:Game[];total:number;page:number;pages:number}>;create:(game:any)=>Promise<Game>;update:(game:any)=>Promise<Game>;installed:()=>Promise<Game[]>;repairCovers:()=>Promise<{repaired:number;missingId:number;missingCover:number;total:number}>;stats:()=>Promise<any>;download:(game:Game,choice?:DownloadOption)=>Promise<any>;downloads:()=>Promise<DownloadState[]>;delete:(game:Game)=>Promise<any>;selectIso:()=>Promise<{path:string;fileName:string;size:number;suggestedTitle:string}|null>;importIso:(sourcePath:string,game:Game,overwrite?:boolean)=>Promise<any>;onIsoProgress:(cb:(d:any)=>void)=>()=>void;onIsoCompleted:(cb:(d:any)=>void)=>()=>void;onDownloadProgress:(cb:(d:DownloadState)=>void)=>()=>void;onDownloadCompleted:(cb:(d:DownloadState)=>void)=>()=>void;onDownloadError:(cb:(d:DownloadState)=>void)=>()=>void;oplStatus:()=>Promise<OplStatus>;onOplStatus:(cb:(d:OplStatus)=>void)=>()=>void}
+interface GamesAPI{list:(args:any)=>Promise<{games:Game[];total:number;page:number;pages:number}>;create:(game:any)=>Promise<Game>;update:(game:any)=>Promise<Game>;installed:()=>Promise<Game[]>;repairCovers:()=>Promise<{repaired:number;missingId:number;missingCover:number;total:number}>;stats:()=>Promise<any>;download:(game:Game,choice?:DownloadOption)=>Promise<any>;downloads:()=>Promise<DownloadState[]>;delete:(game:Game)=>Promise<any>;selectIso:()=>Promise<{path:string;fileName:string;size:number;suggestedTitle:string;ra?:RACompatible}|null>;importIso:(sourcePath:string,game:Game,overwrite?:boolean)=>Promise<any>;onIsoProgress:(cb:(d:any)=>void)=>()=>void;onIsoCompleted:(cb:(d:any)=>void)=>()=>void;onDownloadProgress:(cb:(d:DownloadState)=>void)=>()=>void;onDownloadCompleted:(cb:(d:DownloadState)=>void)=>()=>void;onDownloadError:(cb:(d:DownloadState)=>void)=>()=>void;oplStatus:()=>Promise<OplStatus>;onOplStatus:(cb:(d:OplStatus)=>void)=>()=>void}
+
+type RACompatible={status:"compatible"|"unmatched"|"unknown"|"unsupported"|"error";hash?:string;id?:number;title?:string;image?:string|null;count?:number;checkedAt?:number;message?:string;fileName?:string};
+
+type DiscordStatus={enabled:boolean;user:{id:string;name:string}|null;configured:boolean;connected:boolean;message:string;game:string;achievement:string};

@@ -159,17 +159,3 @@ O Application ID está em `electron/discord-config.ts`. No Discord Developer Por
 O cliente usa OAuth2 com PKCE e escopo `identify`, sem Client Secret ou token de bot no aplicativo. A atividade é enviada pelo RPC local do Discord desktop.
 
 </details>
-
-## Projetos utilizados e créditos
-
-O Caduceus utiliza o trabalho destes projetos para oferecer o servidor e as integrações:
-
-| Projeto | Uso no Caduceus |
-| --- | --- |
-| [OPL-Server / OPLServer — elmariolo](https://github.com/elmariolo/OPL-Server) | Servidor SMB incorporado que disponibiliza as ISOs ao PS2. |
-| [Open PS2 Loader — ps2homebrew](https://github.com/ps2homebrew/Open-PS2-Loader) | Carregador executado no console para acessar os jogos. |
-| [xeRAbora — hacan359](https://github.com/hacan359/xerabora) | Base do componente adaptado que recebe a telemetria e processa conquistas ao vivo. |
-| [OPL-RA — hacan359](https://github.com/hacan359/Open-PS2-Loader/tree/ra) | Fork do OPL usado para enviar a telemetria do PS2 ao componente de conquistas. |
-| [RetroAchievements](https://retroachievements.org/) e [rcheevos](https://github.com/RetroAchievements/rcheevos) | Serviço de conquistas, API de consulta e biblioteca utilizada pelo xeRAbora. |
-
-Os componentes mantêm a autoria e as licenças de seus respectivos projetos. Versões, adaptações e licenças dos componentes de conquistas estão em [vendor/xerabora](vendor/xerabora/README.md). O som das notificações é sintetizado pelo Caduceus. As capturas deste README usam dados de demonstração.

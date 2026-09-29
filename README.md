@@ -1,142 +1,132 @@
 <p align="center">
-  <img src="assets/caduceus-icon.png" alt="Caduceus" width="88">
+  <img src="assets/caduceus-icon.png" alt="Caduceus" width="100">
 </p>
 
 # Caduceus
 
-Aplicativo para Windows que organiza seus jogos e integra o servidor necessário para **jogar PS2 pela rede com o OPL**. Inclui biblioteca local, conquistas RetroAchievements e atividade no Discord.
+**Um app para jogar PS2 pela rede de forma rápida e prática.**
 
-**[Baixar para Windows x64 — v1.1.0](https://github.com/Rian6/caduceus/releases/download/v1.1.0/Caduceus-Setup-1.1.0-x64.exe)** · [Notas da versão e SHA-256](https://github.com/Rian6/caduceus/releases/tag/v1.1.0)
+O Caduceus transforma seu computador em um servidor de jogos para o PlayStation 2. Você organiza suas ISOs no Windows e acessa os jogos pelo OPL no console, usando a rede local.
 
-O instalador começa com a biblioteca vazia, sem contas conectadas ou ISOs. Não é necessário instalar Node.js, Python ou MongoDB para usar o aplicativo. O executável ainda não possui assinatura digital de editor.
+O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em uma interface só. Adicione seus jogos, conecte o PS2 por cabo de rede e use os dados exibidos no app para configurar o OPL.
 
-![Biblioteca do Caduceus](docs/images/biblioteca.png)
+**[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.1.0/Caduceus-Setup-1.1.0-x64.exe)**
 
-[Começar a jogar](#começar-a-jogar) · [Conquistas](#conquistas-retroachievements) · [Discord](#discord) · [Configurações](#configurações-e-backup) · [Desenvolvimento](#desenvolvimento)
+[Versão 1.1.0 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.1.0)
 
-## O que o aplicativo faz
+![Biblioteca de jogos do Caduceus](docs/images/biblioteca.png)
 
-| Recurso | No Caduceus |
-| --- | --- |
-| Biblioteca | Pesquisa por título, capas, detalhes e edição dos jogos. |
-| Jogos instalados | Lista as imagens disponíveis na pasta do servidor. |
-| Importação e downloads | Importa ISOs do computador e acompanha downloads dos links cadastrados. |
-| Servidor OPL | Exibe IP, porta e compartilhamento; permite alterar a porta e o armazenamento. |
-| Jogo em execução | Mostra o jogo detectado e sua capa na interface. |
-| RetroAchievements | Consulta o progresso da conta, verifica ISOs compatíveis e recebe conquistas ao vivo com OPL-RA. |
-| Discord | Compartilha o jogo, a capa disponível e a última conquista da sessão. |
-| Personalização | Temas claro e escuro, tutorial inicial e controle do som de conquistas. |
+## Como funciona
 
-O catálogo guarda os dados dos jogos em SQLite. Cadastrar ou importar uma base não baixa as ISOs: elas precisam ser importadas ou obtidas pelos links adicionados à biblioteca.
+As ISOs ficam no computador. O **OPLServer**, integrado ao Caduceus, disponibiliza esses arquivos pela rede, e o **Open PS2 Loader (OPL)** no PS2 carrega o jogo.
 
-## Começar a jogar
+```text
+Computador com Caduceus e suas ISOs
+                 │
+             Rede local
+                 │
+          PlayStation 2 com OPL
+```
 
-Você precisa de um **PS2 com OPL instalado**, conexão Ethernet e um computador Windows na mesma rede do console.
+O computador precisa permanecer ligado e com o aplicativo aberto durante a partida. A conexão serve para carregar os jogos pela rede local; ela não adiciona multiplayer online aos jogos.
 
-1. Instale e abra o Caduceus. O tutorial inicial apresenta a configuração básica.
-2. Conecte o PS2 à rede por cabo. Mantenha o computador na mesma rede, preferencialmente também por cabo.
-3. Adicione um jogo à biblioteca e importe sua ISO, ou use uma opção de download cadastrada. Confira o resultado em **Instalados**.
-4. Abra **Configurações → Conexão com o PS2** e confira o estado do servidor, o IP e a porta.
-5. No OPL do console, configure o servidor SMB com esses dados e o compartilhamento **`PS2`**.
-6. Atualize a lista de jogos por rede no OPL e inicie o jogo. Mantenha o Caduceus e o computador ligados durante a partida.
+## Comece a jogar
 
-A porta padrão é **1024**. Se você a alterar no aplicativo, atualize também o OPL. O Caduceus não instala o OPL no console; consulte o projeto [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader).
+Você precisa de um computador Windows, um PS2 com OPL instalado e uma conexão Ethernet entre o console e sua rede.
 
-![Jogo em execução no Caduceus](docs/images/jogando.png)
+1. **Instale o Caduceus.** Baixe o instalador acima e abra o aplicativo.
+2. **Adicione seus jogos.** Cadastre um título e importe sua ISO. Os arquivos prontos para uso aparecem em **Instalados**.
+3. **Conecte o PS2.** Use um cabo de rede e mantenha o console e o computador na mesma rede.
+4. **Confira a conexão.** Em **Configurações → Conexão com o PS2**, veja se o servidor está online e anote o IP e a porta.
+5. **Configure o OPL.** Preencha os dados do servidor SMB no console e use **`PS2`** como nome do compartilhamento.
+6. **Escolha um jogo.** Atualize a lista de jogos por rede no OPL e inicie a partida.
 
-## Conquistas RetroAchievements
+O app inclui um tutorial na primeira abertura. Você pode consultá-lo novamente em **Configurações → Primeiros passos**.
 
-A aba **Conquistas** reúne a biblioteca da conta, os detalhes de cada conquista e o estado da conexão com o PS2. Há filtros para conquistas bloqueadas, desbloqueadas e hardcore. O histórico consultado pode incluir jogos de outras plataformas.
+O OPL precisa estar instalado no console antes desse processo. Consulte o [projeto Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader) para os arquivos e orientações do carregador. O instalador do Caduceus não inclui jogos.
 
-### Conectar a conta
+## Sua biblioteca no computador
 
-Informe seu usuário, senha e **Web API Key** na aba Conquistas. A chave fica nas [configurações da conta RetroAchievements](https://retroachievements.org/settings).
+Encontre e organize os jogos sem precisar trabalhar diretamente com as pastas do servidor.
 
-A senha é usada na autenticação e não é salva. O token e a chave ficam protegidos pelo Windows para restaurar o acesso nas próximas execuções. Use **Desconectar** para remover o acesso salvo.
+- **Biblioteca com capas:** pesquise por título, consulte detalhes e edite os dados dos jogos.
+- **ISOs locais:** importe arquivos do computador para a pasta usada pelo OPLServer.
+- **Downloads:** acompanhe as transferências dos links cadastrados nos jogos.
+- **Jogos instalados:** confira quais imagens já estão disponíveis para o PS2.
+- **Jogo em execução:** acompanhe o título detectado, com sua capa, no painel do aplicativo.
 
-### Receber conquistas do PS2
+![Jogo detectado em execução no PS2](docs/images/jogando.png)
 
-O aplicativo incorpora um adaptador do **xeRAbora** e o executável **OPL-RA.ELF**. O componente de conquistas roda em segundo plano; o OPLServer continua responsável por servir os jogos pela rede.
+## Servidor e armazenamento
 
-1. Entre na conta pelo Caduceus.
-2. Em **Conquistas → Som e configuração do PS2**, clique em **Salvar OPL-RA.ELF**.
-3. Transfira o ELF para o PS2 e execute essa versão do OPL pelo método de inicialização usado no seu console.
-4. Mantenha console e computador na mesma sub-rede, com a porta **UDP 18194** liberada para a comunicação.
-5. No OPL-RA, execute **RA: test PC connection** e **RA: check game support** antes de iniciar o jogo.
+O servidor faz parte do aplicativo. Nas configurações, você encontra o IP do computador, a porta e o nome do compartilhamento para preencher no OPL.
 
-Os novos desbloqueios aparecem como notificações no Caduceus, inclusive em outras abas. Na mesma seção, você pode ajustar o volume, testar o som e pausar ou retomar a conexão ao vivo. Reabra o guia pelo botão **Como funciona**.
+A porta padrão é **1024** e pode ser alterada. Sempre use a mesma porta no aplicativo e no console.
 
-**A integração ao vivo é experimental e funciona apenas em softcore.** O fork OPL-RA tem uma limitação conhecida que pode interromper o carregamento de jogos com conquistas via SMB. Para testar conquistas, use USB ou disco compatível. Para o uso habitual pela rede sem conquistas, use o OPL normal.
+Você também pode escolher onde guardar os jogos. Por padrão, a estrutura fica em `Documentos/Caduceus/oplserver`, com as imagens dentro de `PS2/DVD` e `PS2/CD`.
 
-### Identificar ISOs compatíveis
+Ao escolher outro local, o app oferece duas opções:
 
-Depois de conectar a conta, use **Configurações → Biblioteca → Verificar compatibilidade**. O aplicativo verifica o hash do executável da ISO contra o catálogo do RetroAchievements e exibe um selo com a quantidade de conquistas ativas encontradas.
+- **Migrar a pasta inteira:** transfere jogos, capas, configurações e cartões de memória virtuais.
+- **Excluir a pasta antiga e criar uma nova:** começa sem arquivos no destino e apaga o conteúdo anterior após confirmação. Isso inclui saves guardados em VMCs.
 
-O filtro **Com conquistas**, ao lado da busca, mostra as imagens reconhecidas. A identificação também aparece nos detalhes e na importação de ISOs.
+Encerre a partida e aguarde as transferências terminarem antes de mudar a pasta ou a porta.
 
-A verificação depende do conteúdo da imagem, não apenas do título ou da região. Atualmente, esse recurso verifica **ISO**; BIN e ZSO não são validados. Uma ISO reconhecida não elimina as limitações do OPL-RA.
+![Configurações do Caduceus no tema claro](docs/images/configuracoes-claro.png)
 
-## Discord
+## Catálogo e backup
 
-Em **Configurações → Discord**, clique em **Conectar Discord** e autorize o acesso no navegador. Mantenha **Mostrar atividade no Discord** ativado e o Discord desktop aberto na mesma conta.
+A biblioteca usa um banco **SQLite local**. Você pode importar uma base JSON ou SQLite e salvar um backup em **Configurações → Base de jogos**.
 
-A atividade usa o nome do jogo, a capa cadastrada quando disponível e a descrição **Caduceus · PlayStation 2**. O subtítulo mostra a última conquista recebida na sessão; antes do primeiro desbloqueio, aparece **Nenhuma conquista nesta sessão**.
+A importação preserva os registros que já existem. Para experimentar o formato, há um [catálogo JSON de demonstração](examples/jogos-teste.json).
 
-O compartilhamento também precisa estar permitido nas configurações de privacidade de atividade do Discord. A integração é opcional e pode ser desativada ou desconectada pelo Caduceus.
+O backup guarda os dados do catálogo, como títulos, capas e links. **ISOs, saves, credenciais e configurações não fazem parte desse backup.** Importar uma base também não instala os jogos.
 
-## Configurações e backup
+## Recursos extras
 
-| Seção | Opções disponíveis |
-| --- | --- |
-| Conexão com o PS2 | Consultar IP e compartilhamento, atualizar endereços e alterar a porta. |
-| Armazenamento do OPL Server | Escolher outro local e migrar a pasta inteira ou criar uma nova. |
-| Biblioteca | Reparar capas do OPL e atualizar a compatibilidade RetroAchievements. |
-| Discord | Conectar a conta e ativar ou desativar a atividade. |
-| Base de jogos | Importar JSON/SQLite e salvar um backup SQLite. |
-| Aparência | Escolher o tema claro ou escuro. |
-| Primeiros passos | Reabrir o tutorial de configuração. |
+### Conquistas RetroAchievements
 
-### Importar ou salvar a base
+A aba **Conquistas** permite consultar os jogos e o progresso da sua conta, abrir os detalhes das conquistas e filtrar as desbloqueadas ou pendentes.
 
-A importação aceita uma base SQLite com tabela `games`, uma lista JSON ou um objeto JSON com a propriedade `games`. Registros existentes são preservados, e uma importação válida cria um backup antes de gravar as alterações.
+Para conectar, informe usuário, senha e Web API Key, disponível nas [configurações do RetroAchievements](https://retroachievements.org/settings). A senha não é salva; o token e a chave ficam protegidos pelo Windows.
 
-Você pode testar com [jogos-teste.json](examples/jogos-teste.json), que contém dados fictícios, sem ISOs ou links de download.
+O aplicativo também inclui uma integração experimental com **OPL-RA e xeRAbora** para receber desbloqueios do PS2, com notificações e som. Na própria aba, o guia **Como funciona** explica a configuração, e **Som e configuração do PS2** permite salvar o `OPL-RA.ELF`, ajustar o volume e controlar a conexão ao vivo.
 
-**Salvar backup da base** exporta o catálogo em SQLite. Esse arquivo não inclui ISOs, cartões de memória virtuais, credenciais ou configurações. Ao reimportá-lo, registros ausentes são adicionados; os existentes não são substituídos.
+**Conquistas ao vivo funcionam apenas em softcore. O fork OPL-RA pode apresentar falhas de carregamento com jogos via SMB.** Para testar esse recurso, use USB ou disco compatível. Para jogar normalmente pela rede sem conquistas, use o OPL normal.
 
-### Mudar a pasta dos jogos
+Em **Configurações → Biblioteca → Verificar compatibilidade**, você pode verificar se uma ISO corresponde a um conjunto de conquistas do RetroAchievements. As imagens reconhecidas recebem um selo e podem ser listadas pelo filtro **Com conquistas**. A verificação atual aceita ISO, não BIN ou ZSO.
 
-O local padrão é **`Documentos/Caduceus/oplserver`**. Os arquivos ficam dentro da pasta `PS2`, em subpastas como `DVD`, `CD`, `ART`, `CFG` e `VMC`.
+### Atividade no Discord
 
-Escolha **Migrar a pasta inteira** para transferir jogos, capas, configurações e cartões de memória virtuais. A alternativa **Excluir a pasta antiga e criar uma nova** apaga o conteúdo antigo após confirmação, incluindo saves em VMCs. Encerre jogos e transferências antes de alterar o armazenamento.
+Se quiser compartilhar sua partida, conecte sua conta em **Configurações → Discord**. A atividade mostra o jogo, a capa disponível e a última conquista recebida na sessão.
 
-<details>
-<summary>Mais imagens da interface</summary>
+Mantenha o Discord desktop aberto na mesma conta e permita o compartilhamento de atividade nas configurações do Discord. Você pode desativar a integração a qualquer momento.
 
-As capturas são ilustrativas e usam dados de demonstração; contas e conquistas mostradas são simuladas.
+### Aparência e manutenção
 
-![Configurações no tema claro](docs/images/configuracoes-claro.png)
+As configurações também permitem alternar entre **modo claro e escuro**, reparar as capas dos jogos instalados e reabrir o tutorial inicial.
 
-![Tutorial de conexão com o PS2](docs/images/tutorial.png)
+## Dúvidas rápidas
 
-![Consulta de conquistas](docs/images/conquistas.png)
+**Preciso instalar um banco de dados ou configurar MongoDB?**
 
-</details>
+Não. O aplicativo cria seu banco local automaticamente e o instalador já inclui os componentes necessários para o uso.
 
-## Problemas comuns
+**Os jogos não aparecem no OPL. O que verificar?**
 
-| Situação | O que conferir |
-| --- | --- |
-| A lista do OPL está vazia | Servidor online, jogos em **Instalados**, IP e porta corretos no console e compartilhamento `PS2`. |
-| Conquistas ao vivo não chegam | Conta conectada, OPL-RA em execução, suporte à ISO e teste de conexão do console com o PC. |
-| O jogo não aparece no Discord | Jogo detectado pelo Caduceus, mesma conta no Discord desktop e compartilhamento de atividade permitido. |
-| O servidor foi reiniciado durante a partida | O jogo só volta a ser detectado quando a conexão ou a telemetria for restabelecida. Pode ser necessário reiniciar o jogo no PS2. |
+Confira se o servidor está online, se há jogos na aba Instalados e se IP, porta e compartilhamento `PS2` estão corretos no console. O PS2 e o computador precisam estar na mesma rede.
 
-## Desenvolvimento
+**Posso fechar o Caduceus durante a partida?**
 
-**Electron · React · TypeScript · Vite · SQLite**
+Mantenha o app aberto enquanto joga pela rede. Encerrar ou reiniciar o servidor pode interromper o acesso à ISO; dependendo do jogo, será necessário reiniciar a partida no PS2.
 
-Use Windows, Git e **Node.js 22.12 ou superior**, com npm.
+**O aplicativo já vem com jogos ou uma conta conectada?**
+
+Não. A instalação começa sem ISOs, catálogo pessoal ou credenciais.
+
+## Executar o projeto
+
+O Caduceus usa **Electron, React, TypeScript, Vite e SQLite**. Para desenvolver, use Windows, Git e Node.js 22.12 ou superior com npm.
 
 ```powershell
 git clone https://github.com/Rian6/caduceus.git
@@ -145,32 +135,32 @@ npm ci
 npm run dev
 ```
 
-| Comando | Finalidade |
-| --- | --- |
-| `npm run dev` | Iniciar Vite e Electron em desenvolvimento. |
-| `npm run build` | Compilar a interface e o processo principal. |
-| `npm start` | Abrir o aplicativo já compilado. |
-| `npm run dist` | Gerar o instalador Windows x64 em `release/`, sem publicar. |
-| `node scripts/check-release.cjs` | Auditar o pacote gerado contra a inclusão de dados pessoais. |
+Para compilar e gerar o instalador:
 
-O catálogo de desenvolvimento fica em `database/catalog.sqlite3`; na instalação, ele fica na pasta de dados do usuário do Electron. MongoDB não é necessário para o aplicativo: os scripts `import:mongo` e `migrate:mongo` são ferramentas opcionais de migração. O segundo recria a base local.
+```powershell
+npm run dist
+```
 
-Os testes estão em `scripts/test-*.cjs`. A interface é testada com Electron e dados fictícios, sem depender de contas, ISOs ou banco pessoal. Os testes automatizados não substituem a validação com um PS2 físico.
+O resultado fica em `release/`. A geração não publica arquivos automaticamente. A versão distribuída atualmente não possui assinatura digital de editor.
+
+Os testes estão em `scripts/`. Depois de gerar o pacote, `node scripts/check-release.cjs` verifica a versão, os componentes obrigatórios e a ausência de bancos pessoais, credenciais, caches e ISOs.
 
 <details>
-<summary>Configuração do Discord para mantenedores</summary>
+<summary>Configuração da integração Discord para mantenedores</summary>
 
-O Application ID está em `electron/discord-config.ts`. No Discord Developer Portal, habilite **Public Client** e cadastre o redirect `http://127.0.0.1:53682/discord/callback`.
+O Application ID está em `electron/discord-config.ts`. No Discord Developer Portal, habilite **Public Client** e cadastre `http://127.0.0.1:53682/discord/callback` como redirect.
 
-A autenticação usa OAuth2 com PKCE e escopo `identify`. Não inclua Client Secret ou token de bot no aplicativo. A atividade é enviada pela conexão RPC com o Discord desktop.
+O cliente usa OAuth2 com PKCE e escopo `identify`, sem Client Secret ou token de bot no aplicativo. A atividade é enviada pelo RPC local do Discord desktop.
 
 </details>
 
-## Componentes e créditos
+## Créditos
 
-- **OPLServer:** servidor SMB integrado para disponibilizar os jogos ao console.
-- **[Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader):** carregador de jogos usado no PS2.
-- **[OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra)** e **[xeRAbora](https://github.com/hacan359/xerabora):** integração experimental de conquistas no console.
-- **[RetroAchievements](https://retroachievements.org/)** e **[rcheevos](https://github.com/RetroAchievements/rcheevos):** serviço e componentes de conquistas.
+O Caduceus integra o OPLServer e utiliza projetos da comunidade PlayStation 2 e RetroAchievements:
 
-As versões incorporadas, adaptações e licenças estão documentadas em [vendor/xerabora](vendor/xerabora/README.md). O som de conquista é sintetizado pelo Caduceus. Jogos e capas não acompanham o instalador; os componentes de terceiros mantêm suas próprias licenças.
+- [Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader)
+- [OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra)
+- [xeRAbora](https://github.com/hacan359/xerabora)
+- [RetroAchievements](https://retroachievements.org/) e [rcheevos](https://github.com/RetroAchievements/rcheevos)
+
+Versões, adaptações e licenças dos componentes de conquistas estão em [vendor/xerabora](vendor/xerabora/README.md). As capturas deste README usam dados de demonstração.

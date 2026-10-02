@@ -6,21 +6,21 @@
 
 **Um app para jogar PS2 pela rede de forma rápida e prática.**
 
-O Caduceus transforma seu computador em um servidor de jogos para o PlayStation 2. Você organiza suas ISOs no Windows e acessa os jogos pelo OPL no console, usando a rede local.
+O Caduceus transforma seu computador em um servidor de jogos para o PlayStation 2. Você organiza suas ISOs no Windows e acessa os jogos pelo OPL Caduceus no console, usando a rede local.
 
-O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em uma interface só. Adicione seus jogos, conecte o PS2 por cabo de rede e use os dados exibidos no app para configurar o OPL.
+O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em uma interface só. Adicione seus jogos, conecte o PS2 por cabo de rede e use os dados exibidos no app para configurar o OPL Caduceus.
 
 Para servir os jogos, usamos o **[OPLServer, do projeto OPL-Server de elmariolo](https://github.com/elmariolo/OPL-Server)**. Para as conquistas ao vivo, incorporamos uma adaptação do **[xeRAbora, de hacan359](https://github.com/hacan359/xerabora)**. O Caduceus reúne esses componentes com sua própria interface e biblioteca.
 
-**[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.1.0/Caduceus-Setup-1.1.0-x64.exe)**
+**[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.2.0/Caduceus-Setup-1.2.0-x64.exe)**
 
-[Versão 1.1.0 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.1.0)
+[Versão 1.2.0 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.2.0)
 
 ![Biblioteca de jogos do Caduceus](docs/images/biblioteca.png)
 
 ## Como funciona
 
-As ISOs ficam no computador. O **[OPLServer](https://github.com/elmariolo/OPL-Server)** disponibiliza esses arquivos por SMB, e o **[Open PS2 Loader (OPL)](https://github.com/ps2homebrew/Open-PS2-Loader)** no PS2 carrega o jogo. São componentes com funções diferentes: o servidor roda no Windows e o carregador roda no console.
+As ISOs ficam no computador. O **[OPLServer](https://github.com/elmariolo/OPL-Server)** disponibiliza esses arquivos por SMB, e o **[OPL Caduceus](https://github.com/Rian6/caduceus-opl)** no PS2 carrega o jogo. São componentes com funções diferentes: o servidor roda no Windows e o carregador roda no console.
 
 ```text
 Computador: Caduceus + OPLServer + suas ISOs
@@ -34,7 +34,7 @@ O computador precisa permanecer ligado e com o aplicativo aberto durante a parti
 
 ## Comece a jogar
 
-Você precisa de um computador Windows, um PS2 com OPL instalado e uma conexão Ethernet entre o console e sua rede.
+Você precisa de um computador Windows, um PS2 com o OPL Caduceus instalado e uma conexão Ethernet entre o console e sua rede.
 
 1. **Instale o Caduceus.** Baixe o instalador acima e abra o aplicativo.
 2. **Adicione seus jogos.** Cadastre um título e importe sua ISO. Os arquivos prontos para uso aparecem em **Instalados**.
@@ -45,7 +45,7 @@ Você precisa de um computador Windows, um PS2 com OPL instalado e uma conexão 
 
 O app inclui um tutorial na primeira abertura. Você pode consultá-lo novamente em **Configurações → Primeiros passos**.
 
-O OPL precisa estar instalado no console antes desse processo. Consulte o [projeto Open PS2 Loader](https://github.com/ps2homebrew/Open-PS2-Loader) para os arquivos e orientações do carregador. O instalador do Caduceus não inclui jogos.
+O OPL Caduceus precisa estar instalado no console antes desse processo. Baixe os arquivos e consulte as instruções no [repositório do OPL Caduceus](https://github.com/Rian6/caduceus-opl). O instalador do Caduceus para Windows não inclui o carregador nem jogos.
 
 ## Sua biblioteca no computador
 
@@ -92,13 +92,13 @@ A aba **Conquistas** permite consultar os jogos e o progresso da sua conta, abri
 
 Para conectar, informe usuário, senha e Web API Key, disponível nas [configurações do RetroAchievements](https://retroachievements.org/settings). A senha não é salva; o token e a chave ficam protegidos pelo Windows.
 
-As conquistas ao vivo usam o **[xeRAbora](https://github.com/hacan359/xerabora)** em conjunto com o **[OPL-RA](https://github.com/hacan359/Open-PS2-Loader/tree/ra)**. O OPL-RA envia a telemetria do PS2 ao componente xeRAbora no computador, que processa as conquistas e se comunica com o RetroAchievements. O Caduceus apresenta os eventos em sua própria interface, com notificações e som.
+As conquistas ao vivo usam o **[xeRAbora](https://github.com/hacan359/xerabora)** em conjunto com o **[OPL Caduceus](https://github.com/Rian6/caduceus-opl)**. O carregador envia a telemetria do PS2 ao componente xeRAbora no computador, que processa as conquistas e se comunica com o RetroAchievements. O Caduceus apresenta os eventos em sua própria interface, com notificações e som.
 
 Incluímos um adaptador baseado no **xeRAbora v0.1.0-alpha.12**, executado em segundo plano, com controle local e armazenamento do token protegido pelo Windows. As alterações estão documentadas no [patch incorporado](vendor/xerabora/caduceus.patch) e no [guia do componente](vendor/xerabora/README.md). O OPLServer permanece independente, responsável pelo acesso às ISOs pela rede.
 
 Na aba Conquistas, o guia **Como funciona** explica a configuração, e **Som e configuração do PS2** permite salvar o `OPL-RA.ELF`, ajustar o volume e controlar a conexão ao vivo.
 
-**Conquistas ao vivo funcionam apenas em softcore. O fork OPL-RA pode apresentar falhas de carregamento com jogos via SMB.** Para testar esse recurso, use USB ou disco compatível. Para jogar normalmente pela rede sem conquistas, use o OPL normal.
+**Conquistas ao vivo funcionam apenas em softcore. O recurso pode apresentar falhas de carregamento com jogos via SMB.** Para testar as conquistas, use USB ou disco compatível. Para jogar normalmente pela rede sem conquistas ao vivo, use o OPL Caduceus.
 
 Em **Configurações → Biblioteca → Verificar compatibilidade**, você pode verificar se uma ISO corresponde a um conjunto de conquistas do RetroAchievements. As imagens reconhecidas recebem um selo e podem ser listadas pelo filtro **Com conquistas**. A verificação atual aceita ISO, não BIN ou ZSO.
 

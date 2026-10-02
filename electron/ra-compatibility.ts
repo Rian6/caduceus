@@ -30,6 +30,12 @@ export class RACompatibility{
     })();
     try{await this.pending}finally{this.pending=null}
   }
+  lookupHash(hash:string):RACompatible{
+    this.restore();
+    if(!this.index){void this.sync().catch(()=>{});return{status:'unknown'}};
+    const game=this.hashes.get(hash.toLowerCase());
+    return game&&game.count>0?{status:'compatible',hash,id:game.id,title:game.title,image:game.image,count:game.count,checkedAt:this.index.at}:{status:'unmatched',hash,checkedAt:this.index.at};
+  }
   async check(file?:string):Promise<RACompatible>{
     if(!file)return{status:'unknown',message:'Baixe ou importe a ISO para validar esta versão.'};
     const fileName=path.basename(file);

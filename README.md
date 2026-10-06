@@ -164,8 +164,5 @@ O cliente usa OAuth2 com PKCE e escopo `identify`, sem Client Secret ou token de
 
 Os desbloqueios reais do RetroAchievements sao enviados ao OPL Caduceus por UDP para um card com titulo e pontos durante o jogo. Use o snapshot de 2026-10-06 do [OPL Caduceus](https://github.com/Rian6/caduceus-opl/releases/tag/v0.1.1-snapshot.20261006). A ultima otimizacao do card ainda precisa ser validada no PS2 fisico.
 
-## Distribuicao sem dados pessoais
-
-O instalador inclui os programas e recursos necessarios, sem contas autenticadas, ISOs, bancos pessoais ou caches de desenvolvimento. Cada usuario configura sua biblioteca e faz seu proprio login. Credenciais e chaves de pareamento devem permanecer locais e nunca ser publicadas.
-
-Para compilar no Windows: `npm ci`, seguido de `npm run dist`. Para auditar a distribuicao gerada, execute `node scripts/check-release.cjs`.
+## Ajude a manter o projeto
+PIX: ab3d2638-1bf7-4b16-b061-df7684195577

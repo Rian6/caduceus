@@ -1,7 +1,7 @@
 // Audit the actual packaged files, including the contents of app.asar.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const asar=require('@electron/asar');
-const root=path.resolve(__dirname,'../release/win-unpacked/resources');
+const root=process.argv[2] ? path.resolve(process.argv[2],'win-unpacked/resources') : path.resolve(__dirname,'../release/win-unpacked/resources');
 const forbidden=/(^|\/)(cache|database|achievement-engine|\.env(?:\..*)?|credentials|discord-presence\.json|settings\.json)(\/|$)|\.(iso|zso|sqlite3?|db|enc)(?:-[^/]*)?$/i;
 const files=[];
 function walk(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isDirectory())walk(full);else files.push(path.relative(root,full).replaceAll('\\','/'))}}

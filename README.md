@@ -12,9 +12,9 @@ O aplicativo reúne o servidor, a biblioteca e as configurações de conexão em
 
 Para servir os jogos, usamos o **[OPLServer, do projeto OPL-Server de elmariolo](https://github.com/elmariolo/OPL-Server)**. Para as conquistas ao vivo, incorporamos uma adaptação do **[xeRAbora, de hacan359](https://github.com/hacan359/xerabora)**. O Caduceus reúne esses componentes com sua própria interface e biblioteca.
 
-**[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.2.0/Caduceus-Setup-1.2.0-x64.exe)**
+**[Baixar Caduceus para Windows](https://github.com/Rian6/caduceus/releases/download/v1.2.1/Caduceus-Setup-1.2.1-x64.exe)**
 
-[Versão 1.2.0 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.2.0)
+[Versão 1.2.1 · Windows x64 · Notas da versão](https://github.com/Rian6/caduceus/releases/tag/v1.2.1)
 
 ![Biblioteca de jogos do Caduceus](docs/images/biblioteca.png)
 
@@ -45,7 +45,7 @@ Você precisa de um computador Windows, um PS2 com o OPL Caduceus instalado e um
 
 O app inclui um tutorial na primeira abertura. Você pode consultá-lo novamente em **Configurações → Primeiros passos**.
 
-O OPL Caduceus precisa estar instalado no console antes desse processo. Baixe os arquivos e consulte as instruções no [repositório do OPL Caduceus](https://github.com/Rian6/caduceus-opl). O instalador do Caduceus para Windows não inclui o carregador nem jogos.
+O OPL Caduceus precisa estar instalado no console antes desse processo. Baixe os arquivos e consulte as instruções no [repositório do OPL Caduceus](https://github.com/Rian6/caduceus-opl). O aplicativo permite exportar o ELF em **Salvar OPL-RA**; copie-o para o console. O instalador não instala o carregador automaticamente no PS2 e não inclui jogos.
 
 ## Sua biblioteca no computador
 
@@ -159,3 +159,13 @@ O Application ID está em `electron/discord-config.ts`. No Discord Developer Por
 O cliente usa OAuth2 com PKCE e escopo `identify`, sem Client Secret ou token de bot no aplicativo. A atividade é enviada pelo RPC local do Discord desktop.
 
 </details>
+
+## Notificacoes no PS2
+
+Os desbloqueios reais do RetroAchievements sao enviados ao OPL Caduceus por UDP para um card com titulo e pontos durante o jogo. Use o snapshot de 2026-10-06 do [OPL Caduceus](https://github.com/Rian6/caduceus-opl/releases/tag/v0.1.1-snapshot.20261006). A ultima otimizacao do card ainda precisa ser validada no PS2 fisico.
+
+## Distribuicao sem dados pessoais
+
+O instalador inclui os programas e recursos necessarios, sem contas autenticadas, ISOs, bancos pessoais ou caches de desenvolvimento. Cada usuario configura sua biblioteca e faz seu proprio login. Credenciais e chaves de pareamento devem permanecer locais e nunca ser publicadas.
+
+Para compilar no Windows: `npm ci`, seguido de `npm run dist`. Para auditar a distribuicao gerada, execute `node scripts/check-release.cjs`.

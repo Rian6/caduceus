@@ -1,7 +1,7 @@
 import {startCaduceusAchievements,loadAchievementsKey} from './caduceus-achievements';
 import {RAArtwork} from './ra-art';
 import {writeOplCover,hasOplCover,migrateLegacyCovers} from './cover-art';
-import {startCaduceusRABridge} from './caduceus-ra-bridge';
+import {startCaduceusRABridge,notifyCaduceusUnlock} from './caduceus-ra-bridge';
 import { app, BrowserWindow, ipcMain, session, nativeImage, dialog, safeStorage, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
@@ -45,7 +45,7 @@ const raArtwork=new RAArtwork(()=>artDir());
 handle('ra:compatibility-sync',async()=>{await compatibility.sync(true);return true});
 import {Xerabora,XERA_PORT} from './xerabora';
 const xeraDirectory=()=>app.isPackaged?path.join(process.resourcesPath,'xerabora'):path.join(__dirname,'..','vendor','xerabora');
-const xera=new Xerabora(xeraDirectory,(channel,value)=>{if(channel==='xera:unlock'){achievements.invalidate();discord.unlock(value)}if(channel==='xera:status'){playSession.console(value.connected);const row=value.connected&&value.game?database().prepare('SELECT icon FROM games WHERE title = ? COLLATE NOCASE LIMIT 1').get(value.game) as {icon?:string}|undefined:undefined;discord.updateConsole({...value,icon:row?.icon});}broadcast(channel,value)},()=>path.join(app.getPath('userData'),'achievement-engine'));
+const xera=new Xerabora(xeraDirectory,(channel,value)=>{if(channel==='xera:unlock'){notifyCaduceusUnlock(value);achievements.invalidate();discord.unlock(value)}if(channel==='xera:status'){playSession.console(value.connected);const row=value.connected&&value.game?database().prepare('SELECT icon FROM games WHERE title = ? COLLATE NOCASE LIMIT 1').get(value.game) as {icon?:string}|undefined:undefined;discord.updateConsole({...value,icon:row?.icon});}broadcast(channel,value)},()=>path.join(app.getPath('userData'),'achievement-engine'));
 handle('xera:status',()=>xera.status());
 handle('xera:start',()=>xera.start());
 handle('xera:stop',()=>xera.stop());

@@ -44,3 +44,6 @@ package.zip
 *.sqlite-shm
 vendor/xerabora/credentials
 vendor/xerabora/games
+
+# Local diagnostics and temporary test data
+CADUCEUS.KEY
